@@ -73,6 +73,9 @@ final class SACIG_Bootstrap {
 		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-miner-shortcode.php';
 		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-admin.php';
 		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-cloud-save.php';
+		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-branding.php';
+		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-login-pages.php';
+		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-ai-storyline.php';
 	}
 
 	/**
@@ -86,6 +89,9 @@ final class SACIG_Bootstrap {
 		}
 
 		new SACIG_Cloud_Save();
+		new SACIG_Branding();
+		new SACIG_Login_Pages();
+		new SACIG_AI_Storyline();
 	}
 
 	/**

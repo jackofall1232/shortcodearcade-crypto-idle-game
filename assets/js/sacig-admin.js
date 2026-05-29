@@ -298,6 +298,66 @@
         }
         
         /**
+         * Initialize the branding color pickers
+         */
+        function handleColorPickers() {
+            const $pickers = $('.sacig-color-picker');
+
+            if (!$pickers.length || typeof $.fn.wpColorPicker !== 'function') {
+                return;
+            }
+
+            $pickers.wpColorPicker();
+        }
+
+        /**
+         * Branding custom coin image media uploader
+         */
+        function handleCoinUploader() {
+            const $button = $('#sacig-upload-coin');
+            const $remove = $('.sacig-remove-coin');
+            const $input = $('#sacig_custom_coin');
+            const $preview = $('#sacig-coin-preview');
+
+            if (!$button.length || typeof wp === 'undefined' || !wp.media) {
+                return;
+            }
+
+            let frame;
+
+            $button.on('click', function(e) {
+                e.preventDefault();
+
+                if (frame) {
+                    frame.open();
+                    return;
+                }
+
+                frame = wp.media({
+                    title: 'Select Coin Image',
+                    button: { text: 'Use this image' },
+                    multiple: false
+                });
+
+                frame.on('select', function() {
+                    const attachment = frame.state().get('selection').first().toJSON();
+                    $input.val(attachment.url);
+                    $preview.html('<img src="' + attachment.url + '" alt="" style="max-width:96px;height:auto;">');
+                    $remove.show();
+                });
+
+                frame.open();
+            });
+
+            $remove.on('click', function(e) {
+                e.preventDefault();
+                $input.val('');
+                $preview.html('<span class="sacig-coin-placeholder"><span class="dashicons dashicons-format-image"></span> No custom coin image set</span>');
+                $remove.hide();
+            });
+        }
+
+        /**
          * Initialize all admin functionality
          */
         function init() {
@@ -310,6 +370,8 @@
             animateStats();
             handleUnsavedChanges();
             animateUpgradeCTAs();
+            handleColorPickers();
+            handleCoinUploader();
         }
         
         // Initialize
