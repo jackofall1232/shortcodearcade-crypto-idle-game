@@ -213,10 +213,15 @@
     filter: drop-shadow(0 0 40px var(--sacig-neon-magenta)) brightness(1.5);
 }
 
-.sacig-mine-button svg {
+.sacig-mine-button svg,
+.sacig-mine-button .sacig-coin-image {
     width: 100%;
     height: 100%;
     animation: sacig-float 3s ease-in-out infinite;
+}
+
+.sacig-mine-button .sacig-coin-image {
+    object-fit: contain;
 }
 
 @keyframes sacig-float {
@@ -719,4 +724,74 @@
         font-size: 0.6rem;
         padding: 1px 5px;
     }
+}
+
+/* Leaderboard avatars */
+.sacig-avatar {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.sacig-avatar img {
+    border-radius: 50%;
+    vertical-align: middle;
+    border: 1px solid var(--sacig-glass-border);
+}
+
+/* Login / Register forms */
+.sacig-auth-container {
+    max-width: 420px;
+}
+
+.sacig-auth-container form {
+    background: var(--sacig-glass-bg);
+    border: 1px solid var(--sacig-glass-border);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--sacig-glow-cyan);
+}
+
+.sacig-auth-container label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--sacig-neon-cyan);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+}
+
+.sacig-auth-container input[type="text"],
+.sacig-auth-container input[type="email"],
+.sacig-auth-container input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--sacig-glass-border);
+    border-radius: 6px;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.sacig-auth-container input[type="submit"],
+.sacig-auth-container .button-primary {
+    background: linear-gradient(45deg, var(--sacig-neon-magenta), var(--sacig-neon-cyan));
+    color: #0a0a1f;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 24px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.sacig-auth-notice,
+.sacig-auth-register-link,
+.sacig-auth-note {
+    text-align: center;
+    color: var(--sacig-neon-cyan);
+}
+
+.sacig-auth-note {
+    font-size: 0.85rem;
+    opacity: 0.8;
 }

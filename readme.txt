@@ -4,7 +4,7 @@ Donate link: https://shortcodearcade.com
 Tags: game, idle game, crypto, clicker game, mining game
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.0.0
+Stable tag: 2.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -47,6 +47,12 @@ Display the game with custom ad code:
 
 Display the leaderboard (requires cloud saves):
 `[sacig_crypto_idle_leaderboard]`
+
+Display a branded login form:
+`[sacig_crypto_idle_login]`
+
+Display a branded registration form:
+`[sacig_crypto_idle_register]`
 
 **Cloud Saves & Leaderboards:**
 
@@ -134,6 +140,17 @@ Yes. Version 1.0.0 is fully tested and compatible with WordPress 7.0, with all c
 6. Admin settings panel  
 
 == Changelog ==
+
+= 2.0.0 =
+* NEW: All features now free — no Pro version required
+* NEW: Top-level admin menu with Arcade-themed UI
+* NEW: Branding settings (game title, currency name, coin image, colors, footer) now apply to the live game
+* NEW: Login and registration shortcodes — [sacig_crypto_idle_login] and [sacig_crypto_idle_register] — with configurable titles and redirects
+* NEW: Leaderboard display settings (title, avatars, highlight color) now apply on the frontend
+* NEW: Purple neon arcade admin design
+* NEW: About page with shortcode reference and plugin info
+* UPDATED: WordPress 7.0 compatibility confirmed
+* FIXED: GitHub Actions deploy workflow env var correction
 
 = 1.0.0 =
 * Stable release

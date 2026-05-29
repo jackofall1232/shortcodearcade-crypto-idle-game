@@ -39,8 +39,9 @@ jobs:
       - name: Deploy to WordPress.org
         uses: 10up/action-wordpress-plugin-deploy@stable
         with:
-          slug: shortcodearcade-crypto-idle-game
-          assets-dir: .wordpress-org
+          generate-zip: true
         env:
           SVN_USERNAME: ${{ secrets.WPORG_USERNAME }}
           SVN_PASSWORD: ${{ secrets.WPORG_PASSWORD }}
+          SLUG: shortcodearcade-crypto-idle-game
+          ASSETS_DIR: .wordpress-org

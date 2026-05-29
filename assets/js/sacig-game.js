@@ -35,6 +35,10 @@
     const isUserLoggedIn = typeof sacigSettings !== 'undefined' && sacigSettings.isUserLoggedIn;
     const useCloudSaves = cloudSavesEnabled && isUserLoggedIn;
 
+    // Branding (passed from WordPress). Falls back to the default currency name.
+    const sacigCurrency = (typeof sacigSettings !== 'undefined' && sacigSettings.currencyName) ? sacigSettings.currencyName : 'Satoshis';
+    const sacigCurrencyLc = sacigCurrency.toLowerCase();
+
     // Upgrade Definitions with Elo-based balancing
     // NOTE: Prestige multiplier is applied at EARN-TIME, not purchase-time
     // This ensures idempotent progression and prevents balance issues
@@ -53,7 +57,7 @@
             id: 'cpuMiner',
             name: 'CPU Miner',
             baseEffect: 0.1,
-            baseDescription: 'Generates satoshis/sec',
+            baseDescription: `Generates ${sacigCurrencyLc}/sec`,
             baseCost: 50,
             rating: 1050,
             type: 'passive',
@@ -73,7 +77,7 @@
             id: 'gpuRig',
             name: 'GPU Mining Rig',
             baseEffect: 1,
-            baseDescription: 'Generates satoshis/sec',
+            baseDescription: `Generates ${sacigCurrencyLc}/sec`,
             baseCost: 500,
             rating: 1200,
             type: 'passive',
@@ -93,7 +97,7 @@
             id: 'asicMiner',
             name: 'ASIC Miner',
             baseEffect: 10,
-            baseDescription: 'Generates satoshis/sec',
+            baseDescription: `Generates ${sacigCurrencyLc}/sec`,
             baseCost: 5000,
             rating: 1400,
             type: 'passive',
@@ -113,7 +117,7 @@
             id: 'miningFarm',
             name: 'Mining Farm',
             baseEffect: 50,
-            baseDescription: 'Generates satoshis/sec',
+            baseDescription: `Generates ${sacigCurrencyLc}/sec`,
             baseCost: 50000,
             rating: 1600,
             type: 'passive',
@@ -133,7 +137,7 @@
             id: 'datacenter',
             name: 'Data Center',
             baseEffect: 250,
-            baseDescription: 'Generates satoshis/sec',
+            baseDescription: `Generates ${sacigCurrencyLc}/sec`,
             baseCost: 500000,
             rating: 1800,
             type: 'passive',
@@ -284,7 +288,7 @@
         const prestigeCost = getPrestigeCost();
         
         if (gameState.satoshis < prestigeCost) {
-            alert(`You need ${formatNumber(prestigeCost)} satoshis to perform a Hard Fork!`);
+            alert(`You need ${formatNumber(prestigeCost)} ${sacigCurrencyLc} to perform a Hard Fork!`);
             return;
         }
         
@@ -297,8 +301,8 @@
             `New Level: ${currentPrestige + 1}\n` +
             `Current Bonus: +${currentPrestige * 10}%\n` +
             `New Bonus: +${(currentPrestige + 1) * 10}%\n\n` +
-            `Cost: ${formatNumber(prestigeCost)} Satoshis\n` +
-            `Next Fork Cost: ${formatNumber(nextPrestigeCost)} Satoshis\n\n` +
+            `Cost: ${formatNumber(prestigeCost)} ${sacigCurrency}\n` +
+            `Next Fork Cost: ${formatNumber(nextPrestigeCost)} ${sacigCurrency}\n\n` +
             `This will reset your progress but give you a permanent +10% production bonus!\n` +
             `Diminishing returns will also reset.`
         );
@@ -411,7 +415,7 @@
             const currentBonus = gameState.prestigeLevel * 10;
             
             prestigeInfo.innerHTML = `
-                Hard Fork available at ${formatNumber(nextPrestigeCost)} satoshis<br>
+                Hard Fork available at ${formatNumber(nextPrestigeCost)} ${sacigCurrencyLc}<br>
                 <span style="font-size: 0.9rem; opacity: 0.7;">
                     ${gameState.prestigeLevel > 0 ? `Current Level: ${gameState.prestigeLevel} (+${currentBonus}% bonus)<br>` : ''}
                     Reset with permanent +10% bonus to all production
@@ -458,7 +462,7 @@
             else timeAway = `${minutes}m`;
             
             setTimeout(() => {
-                alert(`Welcome back! You were away for ${timeAway} and earned ${formatNumber(offlineEarned)} satoshis!`);
+                alert(`Welcome back! You were away for ${timeAway} and earned ${formatNumber(offlineEarned)} ${sacigCurrencyLc}!`);
             }, 500);
         }
     }
