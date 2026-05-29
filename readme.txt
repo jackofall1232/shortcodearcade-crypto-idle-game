@@ -2,9 +2,9 @@
 Contributors: jackofall1232
 Donate link: https://shortcodearcade.com
 Tags: game, idle game, crypto, clicker game, mining game
-Requires at least: 5.0
-Tested up to: 6.9
-Stable tag: 0.4.8
+Requires at least: 6.0
+Tested up to: 7.0
+Stable tag: 1.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -15,7 +15,7 @@ A crypto-themed idle clicker game with balanced progression, prestige mechanics,
 
 **Shortcode Arcade Crypto Idle Game** is an idle clicker game where players grow a virtual crypto mining operation over time. Players click to generate in-game currency, purchase upgrades, and unlock passive income systems.
 
-The game is designed for **fair, long-term progression**, using a carefully tuned scaling curve combined with a prestige (“Hard Fork”) system to prevent runaway inflation and repetitive upgrade stacking.
+The game is designed for **fair, long-term progression**, using a carefully tuned scaling curve combined with a prestige ("Hard Fork") system to prevent runaway inflation and repetitive upgrade stacking.
 
 This plugin is self-contained and runs entirely inside WordPress, making it ideal for gaming sites, communities, or experimental content.
 
@@ -24,7 +24,7 @@ This plugin is self-contained and runs entirely inside WordPress, making it idea
 * **Click-to-Mine Gameplay** – Generate in-game currency through active clicking
 * **Balanced Progression Curve** – Upgrade costs scale dynamically for long-term play
 * **Multiple Upgrade Paths** – Unlock and stack production upgrades
-* **Prestige System (“Hard Fork”)** – Reset progress for permanent production bonuses
+* **Prestige System ("Hard Fork")** – Reset progress for permanent production bonuses
 * **Auto-Save** – Progress saves automatically at regular intervals
 * **Offline Progress** – Earn limited passive income while away
 * **Modern UI** – Clean, game-focused interface
@@ -79,8 +79,8 @@ All font requests are made directly from the user's browser to Google's servers.
 
 1. Log in to your WordPress admin panel
 2. Go to Plugins → Add New
-3. Search for “Shortcode Arcade Crypto Idle Game”
-4. Click “Install Now” and then “Activate”
+3. Search for "Shortcode Arcade Crypto Idle Game"
+4. Click "Install Now" and then "Activate"
 
 = Manual Installation =
 
@@ -100,7 +100,7 @@ All font requests are made directly from the user's browser to Google's servers.
 
 Yes. Progress is saved locally in the browser at regular intervals. Optional cloud saves can be enabled by the site administrator.
 
-= What’s the difference between local saves and cloud saves? =
+= What's the difference between local saves and cloud saves? =
 
 **Local Saves:** Stored in the browser. No login required.  
 **Cloud Saves:** Stored in the WordPress database. Login required. Enables leaderboards.
@@ -120,16 +120,27 @@ Yes. The interface is fully responsive and touch-friendly.
 
 Local saves are stored in browser localStorage. Cloud saves are stored in WordPress custom database tables when enabled.
 
+= Is it compatible with WordPress 7.0? =
+
+Yes. Version 1.0.0 is fully tested and compatible with WordPress 7.0, with all code updated to align with modern WordPress standards and best practices.
+
 == Screenshots ==
 
 1. Main game interface  
 2. Upgrade progression panel  
-3. Prestige (“Hard Fork”) system  
+3. Prestige ("Hard Fork") system  
 4. Mobile responsive layout  
 5. Leaderboard view  
 6. Admin settings panel  
 
 == Changelog ==
+
+= 1.0.0 =
+* Stable release
+* Full WordPress 7.0 compatibility and compliance
+* Code optimizations and quality improvements
+* Tested and verified across all core gameplay and admin features
+* Production-ready for wide distribution
 
 = 0.4.6 - 2026-01-15 =
 * Critical reviewer-risk cleanup and schema unification
@@ -184,14 +195,14 @@ Local saves are stored in browser localStorage. Cloud saves are stored in WordPr
 
 == Upgrade Notice ==
 
+= 1.0.0 =
+Stable release with full WordPress 7.0 compatibility. Recommended for all sites.
+
 = 0.4.6 =
 Critical reviewer cleanup - unifies database schema, updates metadata, and removes legacy branding. No gameplay or data changes.
 
 = 0.4.5 =
 Final namespace and prefix audit for WordPress.org compliance. Shortcodes updated to sacig_ prefix. Update shortcode references in your pages. No gameplay or data changes.
-
-= 0.4.4 =
-Internal refactor to fully comply with WordPress.org plugin review guidelines. No functional or data changes.
 
 == Credits ==
 
