@@ -334,8 +334,8 @@
                 }
 
                 frame = wp.media({
-                    title: 'Select Coin Image',
-                    button: { text: 'Use this image' },
+                    title: sacigAdminStrings.selectCoinImage,
+                    button: { text: sacigAdminStrings.useThisImage },
                     multiple: false
                 });
 
@@ -352,7 +352,7 @@
             $remove.on('click', function(e) {
                 e.preventDefault();
                 $input.val('').trigger('change');
-                $preview.html('<span class="sacig-coin-placeholder"><span class="dashicons dashicons-format-image"></span> No custom coin image set</span>');
+                $preview.html('<span class="sacig-coin-placeholder"><span class="dashicons dashicons-format-image"></span> ' + sacigAdminStrings.noCoinImage + '</span>');
                 $remove.hide();
             });
         }

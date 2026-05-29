@@ -125,6 +125,28 @@ class SACIG_AI_Storyline {
 	}
 
 	/**
+	 * Simple per-user / per-IP rate limit for the storyline endpoint.
+	 *
+	 * @return true|WP_Error
+	 */
+	private function check_rate_limit() {
+		$user_id = get_current_user_id();
+		if ( $user_id ) {
+			$bucket = 'u' . $user_id;
+		} else {
+			$ip     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+			$bucket = 'ip' . md5( $ip );
+		}
+		$key   = 'sacig_ai_rl_' . $bucket;
+		$count = (int) get_transient( $key );
+		if ( $count >= 30 ) {
+			return new WP_Error( 'sacig_ai_rate_limited', __( 'Too many requests. Please slow down.', 'shortcodearcade-crypto-idle-game' ), array( 'status' => 429 ) );
+		}
+		set_transient( $key, $count + 1, 5 * MINUTE_IN_SECONDS );
+		return true;
+	}
+
+	/**
 	 * Handle a storyline generation request.
 	 *
 	 * @param WP_REST_Request $request REST request.
@@ -144,6 +166,17 @@ class SACIG_AI_Storyline {
 		$upgrade_id     = (string) $request->get_param( 'upgrade_id' );
 		$upgrade_name   = (string) $request->get_param( 'upgrade_name' );
 		$prestige_level = (int) $request->get_param( 'prestige_level' );
+
+		// Require a concrete upgrade id so distinct upgrades don't collapse into one cache key/prompt.
+		if ( 'upgrade' === $event_type && '' === $upgrade_id ) {
+			return new WP_Error( 'sacig_ai_bad_request', __( 'An upgrade_id is required for upgrade events.', 'shortcodearcade-crypto-idle-game' ), array( 'status' => 400 ) );
+		}
+
+		// Throttle requests to protect the paid provider key from abuse.
+		$rate_check = $this->check_rate_limit();
+		if ( is_wp_error( $rate_check ) ) {
+			return $rate_check;
+		}
 
 		if ( 'prestige' === $event_type ) {
 			$cache_key   = self::CACHE_PREFIX . md5( 'prestige_' . $prestige_level );

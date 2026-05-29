@@ -266,18 +266,26 @@
         
         if (gameState.satoshis >= cost) {
             gameState.satoshis -= cost;
-            
+
+            // Detect the first-ever purchase of this tier before incrementing.
+            const wasFirstPurchase = !gameState.upgrades[upgradeId];
+
             // Track owned count
             gameState.upgrades[upgradeId] = (gameState.upgrades[upgradeId] || 0) + 1;
-            
+
             // Recalculate production with diminishing returns
             recalculateProduction();
-            
+
             // Increase rating based on upgrade tier
             gameState.rating += 10;
-            
+
             updateUI();
             saveGame();
+
+            // AI Storyline popup fires only on the first purchase of each tier.
+            if (wasFirstPurchase) {
+                maybeTriggerStoryline('upgrade', upgrade.id, upgrade.name, 0);
+            }
         }
     };
 
@@ -316,9 +324,12 @@
         gameState.passiveIncome = 0;
         gameState.rating = 1000;
         gameState.upgrades = {};
-        
+
         updateUI();
         saveGame();
+
+        // AI Storyline popup fires on each completed Hard Fork.
+        maybeTriggerStoryline('prestige', '', '', gameState.prestigeLevel);
     };
 
     /**
@@ -621,6 +632,172 @@
             modal.classList.remove('sacig-show');
         }
     };
+
+    /**
+     * AI Storyline: persistent set of upgrade tiers that have already shown a
+     * popup, so a given tier only narrates once (even across Hard Forks).
+     */
+    function getStorylineSeen() {
+        try {
+            return JSON.parse(localStorage.getItem('sacigStorylineSeenUpgrades')) || [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function markStorylineSeen(upgradeId) {
+        const seen = getStorylineSeen();
+        if (seen.indexOf(upgradeId) === -1) {
+            seen.push(upgradeId);
+            localStorage.setItem('sacigStorylineSeenUpgrades', JSON.stringify(seen));
+        }
+    }
+
+    /**
+     * Decide whether to request an AI story for this milestone, then fetch it.
+     */
+    function maybeTriggerStoryline(eventType, upgradeId, upgradeName, prestigeLevel) {
+        if (typeof sacigAI === 'undefined' || !sacigAI.enabled) {
+            return;
+        }
+
+        if (eventType === 'upgrade') {
+            if (getStorylineSeen().indexOf(upgradeId) !== -1) {
+                return;
+            }
+            markStorylineSeen(upgradeId);
+        }
+
+        triggerAIStoryline(eventType, upgradeId, upgradeName, prestigeLevel);
+    }
+
+    /**
+     * Resolve the prestige media URL for a given level, with per-level overrides.
+     */
+    function getPrestigeMedia(prestigeLevel) {
+        if (typeof sacigAI === 'undefined' || !sacigAI.media) {
+            return '';
+        }
+        if (prestigeLevel === 10 && sacigAI.media.level10) {
+            return sacigAI.media.level10;
+        }
+        if (prestigeLevel === 5 && sacigAI.media.level5) {
+            return sacigAI.media.level5;
+        }
+        return sacigAI.media.general || '';
+    }
+
+    /**
+     * Call the storyline REST endpoint and show the popup on success.
+     * Fails silently — players never see an error.
+     */
+    function triggerAIStoryline(eventType, upgradeId, upgradeName, prestigeLevel) {
+        if (typeof sacigAI === 'undefined' || !sacigAI.enabled) {
+            return;
+        }
+
+        const mediaUrl = eventType === 'prestige' ? getPrestigeMedia(prestigeLevel) : '';
+
+        fetch(sacigAI.endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-WP-Nonce': sacigAI.nonce
+            },
+            body: JSON.stringify({
+                event_type: eventType,
+                upgrade_id: upgradeId || '',
+                upgrade_name: upgradeName || '',
+                prestige_level: prestigeLevel || 0
+            })
+        })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.story) {
+                    showAIPopup(data.story, mediaUrl);
+                }
+            })
+            .catch(function() {
+                // Silent fail — never interrupt gameplay.
+            });
+    }
+
+    /**
+     * Display the AI storyline popup with an optional media element.
+     */
+    function showAIPopup(message, mediaUrl) {
+        // Only one popup at a time.
+        const existing = document.querySelector('.sacig-ai-popup-overlay');
+        if (existing) {
+            existing.remove();
+        }
+
+        const overlay = document.createElement('div');
+        overlay.className = 'sacig-ai-popup-overlay';
+
+        const box = document.createElement('div');
+        box.className = 'sacig-ai-popup-box';
+
+        if (mediaUrl) {
+            let media;
+            if (/\.mp4($|\?)/i.test(mediaUrl)) {
+                media = document.createElement('video');
+                media.src = mediaUrl;
+                media.autoplay = true;
+                media.muted = true;
+                media.loop = true;
+                media.playsInline = true;
+            } else {
+                media = document.createElement('img');
+                media.src = mediaUrl;
+                media.alt = '';
+            }
+            media.className = 'sacig-ai-popup-media';
+            box.appendChild(media);
+        }
+
+        const text = document.createElement('p');
+        text.className = 'sacig-ai-popup-message';
+        text.textContent = message;
+        box.appendChild(text);
+
+        const close = document.createElement('button');
+        close.className = 'sacig-ai-popup-close';
+        close.textContent = 'Continue Mining';
+        box.appendChild(close);
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+
+        // Animate in on the next tick.
+        setTimeout(function() {
+            overlay.classList.add('sacig-ai-popup-active');
+        }, 10);
+
+        let dismissed = false;
+        function dismiss() {
+            if (dismissed) {
+                return;
+            }
+            dismissed = true;
+            overlay.classList.remove('sacig-ai-popup-active');
+            setTimeout(function() {
+                overlay.remove();
+            }, 300);
+        }
+
+        close.addEventListener('click', dismiss);
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                dismiss();
+            }
+        });
+
+        // Auto-dismiss after 8 seconds.
+        setTimeout(dismiss, 8000);
+    }
 
     /**
      * Apply custom branding theme

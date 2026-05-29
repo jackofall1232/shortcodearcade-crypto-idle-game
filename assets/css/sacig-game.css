@@ -795,3 +795,82 @@
     font-size: 0.85rem;
     opacity: 0.8;
 }
+
+/* ==========================================================================
+   AI Storyline popup
+   ========================================================================== */
+.sacig-ai-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 5, 20, 0.85);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.sacig-ai-popup-overlay.sacig-ai-popup-active {
+    opacity: 1;
+}
+
+.sacig-ai-popup-box {
+    background: linear-gradient(135deg, var(--sacig-deep-purple) 0%, var(--sacig-dark-blue) 100%);
+    border: 2px solid var(--sacig-neon-cyan);
+    border-radius: 12px;
+    box-shadow: var(--sacig-glow-cyan);
+    max-width: 480px;
+    width: 100%;
+    padding: 30px;
+    text-align: center;
+    transform: translateY(20px) scale(0.96);
+    transition: transform 0.3s ease;
+}
+
+.sacig-ai-popup-active .sacig-ai-popup-box {
+    transform: translateY(0) scale(1);
+}
+
+.sacig-ai-popup-media {
+    display: block;
+    max-width: 100%;
+    max-height: 240px;
+    margin: 0 auto 20px;
+    border-radius: 8px;
+    border: 1px solid var(--sacig-neon-magenta);
+}
+
+.sacig-ai-popup-message {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    color: #fff;
+    margin: 0 0 24px;
+    text-shadow: 0 0 8px var(--sacig-neon-cyan);
+}
+
+.sacig-ai-popup-close {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--sacig-dark-blue);
+    background: var(--sacig-neon-cyan);
+    border: none;
+    border-radius: 6px;
+    padding: 12px 24px;
+    cursor: pointer;
+    box-shadow: var(--sacig-glow-cyan);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sacig-ai-popup-close:hover {
+    transform: scale(1.05);
+    box-shadow: var(--sacig-glow-magenta);
+}

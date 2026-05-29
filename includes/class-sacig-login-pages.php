@@ -38,6 +38,20 @@ class SACIG_Login_Pages {
 		add_action( 'init', array( $this, 'handle_login_submission' ) );
 		add_action( 'init', array( $this, 'handle_register_submission' ) );
 		add_action( 'init', array( $this, 'maybe_redirect_login' ) );
+		add_filter( 'show_admin_bar', array( $this, 'maybe_hide_admin_bar' ) );
+	}
+
+	/**
+	 * Hide the admin bar for non-admin users when the option is enabled.
+	 *
+	 * @param bool $show Whether to show the admin bar.
+	 * @return bool
+	 */
+	public function maybe_hide_admin_bar( $show ) {
+		if ( get_option( 'sacig_hide_admin_bar', false ) && ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+		return $show;
 	}
 
 	/**
@@ -500,7 +514,8 @@ class SACIG_Login_Pages {
 		}
 
 		$creds = array(
-			'user_login'    => isset( $_POST['sacig_username'] ) ? sanitize_user( wp_unslash( $_POST['sacig_username'] ) ) : '',
+			// sanitize_text_field (not sanitize_user) so email logins keep their @ and . characters.
+			'user_login'    => isset( $_POST['sacig_username'] ) ? sanitize_text_field( wp_unslash( $_POST['sacig_username'] ) ) : '',
 			// Passwords are intentionally not sanitized; doing so would strip valid special characters.
 			'user_password' => isset( $_POST['sacig_password'] ) ? wp_unslash( $_POST['sacig_password'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 			'remember'      => ! empty( $_POST['sacig_remember'] ),
@@ -548,6 +563,10 @@ class SACIG_Login_Pages {
 		}
 		if ( ! is_email( $email ) ) {
 			$this->set_error( __( 'Please enter a valid email address.', 'shortcodearcade-crypto-idle-game' ) );
+			return;
+		}
+		if ( '' === $password ) {
+			$this->set_error( __( 'Please enter a password.', 'shortcodearcade-crypto-idle-game' ) );
 			return;
 		}
 		if ( $password !== $password2 ) {
@@ -600,6 +619,16 @@ class SACIG_Login_Pages {
 				wp_safe_redirect( $register_page );
 				exit;
 			}
+		}
+
+		// Preserve the original redirect_to target (e.g. a protected page) across the redirect.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only passthrough of the login redirect target.
+		if ( isset( $_REQUEST['redirect_to'] ) && '' !== $_REQUEST['redirect_to'] ) {
+			$login_page = add_query_arg(
+				'redirect_to',
+				rawurlencode( esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) ),
+				$login_page
+			);
 		}
 
 		wp_safe_redirect( $login_page );

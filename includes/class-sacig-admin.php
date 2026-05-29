@@ -18,9 +18,38 @@ if (!defined('ABSPATH')) {
 class SACIG_Admin {
 
     /**
-     * Constructor
+     * Branding feature instance.
+     *
+     * @var SACIG_Branding|null
      */
-    public function __construct() {
+    private $branding;
+
+    /**
+     * Login pages feature instance.
+     *
+     * @var SACIG_Login_Pages|null
+     */
+    private $login_pages;
+
+    /**
+     * AI storyline feature instance.
+     *
+     * @var SACIG_AI_Storyline|null
+     */
+    private $ai_storyline;
+
+    /**
+     * Constructor
+     *
+     * @param SACIG_Branding|null     $branding     Shared branding instance.
+     * @param SACIG_Login_Pages|null  $login_pages  Shared login pages instance.
+     * @param SACIG_AI_Storyline|null $ai_storyline Shared AI storyline instance.
+     */
+    public function __construct( $branding = null, $login_pages = null, $ai_storyline = null ) {
+        $this->branding     = $branding;
+        $this->login_pages  = $login_pages;
+        $this->ai_storyline = $ai_storyline;
+
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
@@ -385,7 +414,7 @@ class SACIG_Admin {
         }
         settings_errors('sacig_messages');
 
-        $branding = new SACIG_Branding();
+        $branding = $this->branding instanceof SACIG_Branding ? $this->branding : new SACIG_Branding();
         $branding->render_settings_page();
     }
 
@@ -411,7 +440,7 @@ class SACIG_Admin {
             SACIG_AI_Storyline::flush_cache();
         }
 
-        $ai = new SACIG_AI_Storyline();
+        $ai = $this->ai_storyline instanceof SACIG_AI_Storyline ? $this->ai_storyline : new SACIG_AI_Storyline();
         $ai->render_settings_page();
     }
 
@@ -430,7 +459,7 @@ class SACIG_Admin {
         }
         settings_errors('sacig_messages');
 
-        $login = new SACIG_Login_Pages();
+        $login = $this->login_pages instanceof SACIG_Login_Pages ? $this->login_pages : new SACIG_Login_Pages();
         $login->render_settings_page();
     }
 
@@ -672,6 +701,9 @@ class SACIG_Admin {
                 'copiedLabel' => __( 'Copied!', 'shortcodearcade-crypto-idle-game' ),
                 'tooltipCloudSaves' => __( 'Saves game data to WordPress database. Requires users to be logged in.', 'shortcodearcade-crypto-idle-game' ),
                 'tooltipLeaderboard' => __( 'Display top players using the [sacig_crypto_idle_leaderboard] shortcode.', 'shortcodearcade-crypto-idle-game' ),
+                'selectCoinImage' => __( 'Select Coin Image', 'shortcodearcade-crypto-idle-game' ),
+                'useThisImage' => __( 'Use this image', 'shortcodearcade-crypto-idle-game' ),
+                'noCoinImage' => __( 'No custom coin image set', 'shortcodearcade-crypto-idle-game' ),
             )
         );
     }

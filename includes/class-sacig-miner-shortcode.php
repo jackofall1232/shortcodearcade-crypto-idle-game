@@ -122,6 +122,23 @@ class SACIG_Miner_Shortcode {
         );
 
         wp_localize_script('sacig-game-js', 'sacigSettings', $script_data);
+
+        // AI Storyline data for the optional narrative popups. The nonce ties
+        // requests to this site so the paid endpoint cannot be called anonymously.
+        wp_localize_script(
+            'sacig-game-js',
+            'sacigAI',
+            array(
+                'enabled'  => (bool) get_option('sacig_ai_storyline_enabled', false),
+                'endpoint' => rest_url('sacig/v1/storyline'),
+                'nonce'    => wp_create_nonce('wp_rest'),
+                'media'    => array(
+                    'general' => get_option('sacig_ai_media_prestige_general', ''),
+                    'level5'  => get_option('sacig_ai_media_prestige_5', ''),
+                    'level10' => get_option('sacig_ai_media_prestige_10', ''),
+                ),
+            )
+        );
     }
     
     /**

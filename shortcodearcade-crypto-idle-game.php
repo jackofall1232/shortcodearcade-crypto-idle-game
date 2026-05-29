@@ -83,15 +83,18 @@ final class SACIG_Bootstrap {
 	 */
 	private function init_components() {
 		new SACIG_Miner_Shortcode();
-
-		if ( is_admin() ) {
-			new SACIG_Admin();
-		}
-
 		new SACIG_Cloud_Save();
-		new SACIG_Branding();
-		new SACIG_Login_Pages();
-		new SACIG_AI_Storyline();
+
+		// Feature modules register their own hooks/shortcodes/REST routes.
+		$branding = new SACIG_Branding();
+		$login    = new SACIG_Login_Pages();
+		$ai       = new SACIG_AI_Storyline();
+
+		// Admin reuses the single feature instances above instead of constructing
+		// new hook-registering objects when rendering each settings page.
+		if ( is_admin() ) {
+			new SACIG_Admin( $branding, $login, $ai );
+		}
 	}
 
 	/**

@@ -19,9 +19,50 @@ class SACIG_Branding {
 	/**
 	 * Constructor.
 	 */
+	/**
+	 * Map of new branding option keys to the legacy keys the game renderer reads.
+	 *
+	 * The renderer in class-sacig-miner-shortcode.php consumes the legacy keys,
+	 * so we mirror the new values into them whenever branding settings change.
+	 *
+	 * @var array
+	 */
+	private static $legacy_key_map = array(
+		'sacig_color_primary'   => 'sacig_primary_color',
+		'sacig_color_secondary' => 'sacig_secondary_color',
+		'sacig_color_accent'    => 'sacig_accent_color',
+		'sacig_custom_coin'     => 'sacig_coin_image',
+	);
+
 	public function __construct() {
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_color_picker' ) );
+		// Keep the legacy option keys the game renderer reads in sync with the new branding options.
+		add_action( 'admin_init', array( $this, 'sync_legacy_branding' ) );
+	}
+
+	/**
+	 * Mirror the new branding options into the legacy keys consumed by the
+	 * game renderer (coin image and colors), gated by the branding toggle.
+	 *
+	 * When branding is disabled the legacy keys are removed so the game reverts
+	 * to its default neon theme and coin.
+	 */
+	public function sync_legacy_branding() {
+		$enabled = (bool) get_option( 'sacig_branding_enabled', false );
+
+		foreach ( self::$legacy_key_map as $new_key => $legacy_key ) {
+			if ( $enabled ) {
+				$value = get_option( $new_key, '' );
+				if ( '' !== $value && null !== $value ) {
+					update_option( $legacy_key, $value );
+				} else {
+					delete_option( $legacy_key );
+				}
+			} else {
+				delete_option( $legacy_key );
+			}
+		}
 	}
 
 	/**
