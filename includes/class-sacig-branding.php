@@ -115,7 +115,8 @@ class SACIG_Branding {
 			array(
 				'type'              => 'string',
 				'default'           => '',
-				'sanitize_callback' => 'sanitize_text_field',
+				// wp_kses_post so admins can include links/basic formatting in the footer.
+				'sanitize_callback' => 'wp_kses_post',
 			)
 		);
 
@@ -193,15 +194,16 @@ class SACIG_Branding {
 		return array(
 			'enabled'         => (bool) get_option( 'sacig_branding_enabled', false ),
 			'custom_coin'     => get_option( 'sacig_custom_coin', '' ),
+			// Elvis fallbacks: an option saved as an empty string must not break frontend styling/labels.
 			'colors'          => array(
-				'primary'   => get_option( 'sacig_color_primary', '#00ffff' ),
-				'secondary' => get_option( 'sacig_color_secondary', '#ff00ff' ),
-				'accent'    => get_option( 'sacig_color_accent', '#ffff00' ),
+				'primary'   => get_option( 'sacig_color_primary' ) ?: '#00ffff',
+				'secondary' => get_option( 'sacig_color_secondary' ) ?: '#ff00ff',
+				'accent'    => get_option( 'sacig_color_accent' ) ?: '#ffff00',
 			),
-			'game_title'      => get_option( 'sacig_game_title', 'Crypto Arcade' ),
-			'game_subtitle'   => get_option( 'sacig_game_subtitle', 'Click. Mine. Dominate.' ),
-			'currency_name'   => get_option( 'sacig_currency_name', 'Satoshis' ),
-			'currency_symbol' => get_option( 'sacig_currency_symbol', '&#x20BF;' ),
+			'game_title'      => get_option( 'sacig_game_title' ) ?: 'Crypto Arcade',
+			'game_subtitle'   => get_option( 'sacig_game_subtitle' ) ?: 'Click. Mine. Dominate.',
+			'currency_name'   => get_option( 'sacig_currency_name' ) ?: 'Satoshis',
+			'currency_symbol' => get_option( 'sacig_currency_symbol' ) ?: '&#x20BF;',
 			'footer_text'     => get_option( 'sacig_footer_text', '' ),
 		);
 	}

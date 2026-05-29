@@ -16,6 +16,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SACIG_Login_Pages {
 
 	/**
+	 * Auth error message for the current request.
+	 *
+	 * Stored on the instance (not a transient) so it is request-scoped and
+	 * never leaks to other users on a concurrent request.
+	 *
+	 * @var string
+	 */
+	private $auth_error = '';
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -385,7 +395,7 @@ class SACIG_Login_Pages {
 			return ob_get_clean();
 		}
 
-		if ( ! get_option( 'users_can_register' ) ) {
+		if ( ! get_option( 'users_can_register' ) || ! get_option( 'sacig_enable_registration', true ) ) {
 			echo '<div class="sacig-login-container"><div class="sacig-login-box"><p>' . esc_html__( 'Registration is currently disabled.', 'shortcodearcade-crypto-idle-game' ) . '</p></div></div>';
 			return ob_get_clean();
 		}
@@ -521,7 +531,7 @@ class SACIG_Login_Pages {
 		if ( ! isset( $_POST['sacig_register_nonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_POST['sacig_register_nonce'] ) ), 'sacig_register_action' ) ) {
 			return;
 		}
-		if ( ! get_option( 'users_can_register' ) ) {
+		if ( ! get_option( 'users_can_register' ) || ! get_option( 'sacig_enable_registration', true ) ) {
 			$this->set_error( __( 'Registration is currently disabled.', 'shortcodearcade-crypto-idle-game' ) );
 			return;
 		}
@@ -581,6 +591,15 @@ class SACIG_Login_Pages {
 		$action = isset( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : '';
 		if ( in_array( $action, array( 'rp', 'resetpass', 'logout' ), true ) ) {
 			return;
+		}
+
+		// Send registration attempts to the custom register page when one is configured.
+		if ( 'register' === $action ) {
+			$register_page = get_option( 'sacig_register_page', '' );
+			if ( ! empty( $register_page ) ) {
+				wp_safe_redirect( $register_page );
+				exit;
+			}
 		}
 
 		wp_safe_redirect( $login_page );
@@ -646,17 +665,16 @@ class SACIG_Login_Pages {
 	 * @param string $message Error message.
 	 */
 	private function set_error( $message ) {
-		set_transient( 'sacig_auth_error', $message, MINUTE_IN_SECONDS * 5 );
+		$this->auth_error = $message;
 	}
 
 	/**
 	 * Output and clear any stored auth error.
 	 */
 	private function maybe_render_error() {
-		$error = get_transient( 'sacig_auth_error' );
-		if ( $error ) {
-			delete_transient( 'sacig_auth_error' );
-			echo '<div class="sacig-login-error">' . esc_html( $error ) . '</div>';
+		if ( ! empty( $this->auth_error ) ) {
+			echo '<div class="sacig-login-error">' . esc_html( $this->auth_error ) . '</div>';
+			$this->auth_error = '';
 		}
 	}
 

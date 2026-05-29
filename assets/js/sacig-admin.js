@@ -341,7 +341,7 @@
 
                 frame.on('select', function() {
                     const attachment = frame.state().get('selection').first().toJSON();
-                    $input.val(attachment.url);
+                    $input.val(attachment.url).trigger('change');
                     $preview.html('<img src="' + attachment.url + '" alt="" style="max-width:96px;height:auto;">');
                     $remove.show();
                 });
@@ -351,7 +351,7 @@
 
             $remove.on('click', function(e) {
                 e.preventDefault();
-                $input.val('');
+                $input.val('').trigger('change');
                 $preview.html('<span class="sacig-coin-placeholder"><span class="dashicons dashicons-format-image"></span> No custom coin image set</span>');
                 $remove.hide();
             });

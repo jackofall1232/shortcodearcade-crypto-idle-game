@@ -76,7 +76,7 @@ class SACIG_AI_Storyline {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'handle_storyline_request' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'check_storyline_permission' ),
 				'args'                => array(
 					'event_type'     => array(
 						'required'          => true,
@@ -98,6 +98,29 @@ class SACIG_AI_Storyline {
 					),
 				),
 			)
+		);
+	}
+
+	/**
+	 * Permission callback for the storyline route.
+	 *
+	 * The endpoint triggers paid provider calls, so it must not be open to the
+	 * public. We require the standard WordPress REST nonce (X-WP-Nonce), which
+	 * ties the request to a page served by this site and blocks anonymous
+	 * scripts from draining the API key.
+	 *
+	 * @param WP_REST_Request $request REST request.
+	 * @return true|WP_Error
+	 */
+	public function check_storyline_permission( $request ) {
+		$nonce = $request->get_header( 'X-WP-Nonce' );
+		if ( $nonce && wp_verify_nonce( $nonce, 'wp_rest' ) ) {
+			return true;
+		}
+		return new WP_Error(
+			'sacig_rest_forbidden',
+			__( 'Invalid or missing security token.', 'shortcodearcade-crypto-idle-game' ),
+			array( 'status' => 401 )
 		);
 	}
 
@@ -163,6 +186,7 @@ class SACIG_AI_Storyline {
 		}
 
 		set_transient( $cache_key, $result, self::CACHE_TTL );
+		self::remember_cache_key( $cache_key );
 
 		return rest_ensure_response(
 			array(
@@ -214,7 +238,8 @@ class SACIG_AI_Storyline {
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		$text = isset( $data['content'][0]['text'] ) ? trim( $data['content'][0]['text'] ) : '';
+		// Sanitize the provider response before caching/returning it as defense against a poisoned API response.
+		$text = isset( $data['content'][0]['text'] ) ? sanitize_text_field( trim( $data['content'][0]['text'] ) ) : '';
 		if ( '' === $text ) {
 			return new WP_Error( 'sacig_anthropic_empty', 'Anthropic API returned an empty response.' );
 		}
@@ -276,7 +301,8 @@ class SACIG_AI_Storyline {
 		}
 
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		$text = isset( $data['choices'][0]['message']['content'] ) ? trim( $data['choices'][0]['message']['content'] ) : '';
+		// Sanitize the provider response before caching/returning it as defense against a poisoned API response.
+		$text = isset( $data['choices'][0]['message']['content'] ) ? sanitize_text_field( trim( $data['choices'][0]['message']['content'] ) ) : '';
 		if ( '' === $text ) {
 			return new WP_Error( 'sacig_openai_empty', 'AI API returned an empty response.' );
 		}
@@ -285,21 +311,41 @@ class SACIG_AI_Storyline {
 	}
 
 	/**
+	 * Option name for the index of cached story keys.
+	 */
+	const CACHE_INDEX = 'sacig_ai_story_index';
+
+	/**
+	 * Record a cache key in the index so it can be flushed later.
+	 *
+	 * @param string $key Transient key.
+	 */
+	private static function remember_cache_key( $key ) {
+		$index = get_option( self::CACHE_INDEX, array() );
+		if ( ! is_array( $index ) ) {
+			$index = array();
+		}
+		if ( ! in_array( $key, $index, true ) ) {
+			$index[] = $key;
+			update_option( self::CACHE_INDEX, $index, false );
+		}
+	}
+
+	/**
 	 * Delete all cached AI stories.
+	 *
+	 * Uses delete_transient() on the tracked key index so it works correctly
+	 * with external object caches (Redis/Memcached) and never clears the
+	 * site-wide object cache.
 	 */
 	public static function flush_cache() {
-		global $wpdb;
-
-		$like = $wpdb->esc_like( '_transient_' . self::CACHE_PREFIX ) . '%';
-		$like_timeout = $wpdb->esc_like( '_transient_timeout_' . self::CACHE_PREFIX ) . '%';
-
-		// Direct query required: bulk-deleting transients by prefix has no core API.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $like ) );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $like_timeout ) );
-
-		wp_cache_flush();
+		$index = get_option( self::CACHE_INDEX, array() );
+		if ( is_array( $index ) ) {
+			foreach ( $index as $key ) {
+				delete_transient( $key );
+			}
+		}
+		delete_option( self::CACHE_INDEX );
 	}
 
 	/**
