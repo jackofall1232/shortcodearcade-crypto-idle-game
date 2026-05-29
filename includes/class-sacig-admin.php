@@ -18,9 +18,38 @@ if (!defined('ABSPATH')) {
 class SACIG_Admin {
 
     /**
-     * Constructor
+     * Branding feature instance.
+     *
+     * @var SACIG_Branding|null
      */
-    public function __construct() {
+    private $branding;
+
+    /**
+     * Login pages feature instance.
+     *
+     * @var SACIG_Login_Pages|null
+     */
+    private $login_pages;
+
+    /**
+     * AI storyline feature instance.
+     *
+     * @var SACIG_AI_Storyline|null
+     */
+    private $ai_storyline;
+
+    /**
+     * Constructor
+     *
+     * @param SACIG_Branding|null     $branding     Shared branding instance.
+     * @param SACIG_Login_Pages|null  $login_pages  Shared login pages instance.
+     * @param SACIG_AI_Storyline|null $ai_storyline Shared AI storyline instance.
+     */
+    public function __construct( $branding = null, $login_pages = null, $ai_storyline = null ) {
+        $this->branding     = $branding;
+        $this->login_pages  = $login_pages;
+        $this->ai_storyline = $ai_storyline;
+
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
@@ -61,6 +90,15 @@ class SACIG_Admin {
             'manage_options',
             'shortcodearcade-crypto-idle-game-branding',
             array($this, 'render_branding_page')
+        );
+
+        add_submenu_page(
+            'shortcodearcade-crypto-idle-game',
+            __( 'AI Storyline — Crypto Arcade', 'shortcodearcade-crypto-idle-game' ),
+            __( 'AI Storyline', 'shortcodearcade-crypto-idle-game' ),
+            'manage_options',
+            'shortcodearcade-crypto-idle-game-ai',
+            array( $this, 'render_ai_storyline_page' )
         );
 
         add_submenu_page(
@@ -147,64 +185,9 @@ class SACIG_Admin {
             'sacig_main_section'
         );
 
-        // --- Branding settings group ---
-        register_setting('sacig_branding_group', 'sacig_primary_color', array(
-            'type' => 'string',
-            'default' => '#7c3aed',
-            'sanitize_callback' => 'sanitize_hex_color'
-        ));
-        register_setting('sacig_branding_group', 'sacig_secondary_color', array(
-            'type' => 'string',
-            'default' => '#a855f7',
-            'sanitize_callback' => 'sanitize_hex_color'
-        ));
-        register_setting('sacig_branding_group', 'sacig_accent_color', array(
-            'type' => 'string',
-            'default' => '#e879f9',
-            'sanitize_callback' => 'sanitize_hex_color'
-        ));
-        register_setting('sacig_branding_group', 'sacig_coin_image', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'esc_url_raw'
-        ));
-        register_setting('sacig_branding_group', 'sacig_game_title', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'sanitize_text_field'
-        ));
-        register_setting('sacig_branding_group', 'sacig_currency_name', array(
-            'type' => 'string',
-            'default' => 'Satoshis',
-            'sanitize_callback' => 'sanitize_text_field'
-        ));
-        register_setting('sacig_branding_group', 'sacig_footer_text', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'sanitize_text_field'
-        ));
-
-        // --- Login pages settings group ---
-        register_setting('sacig_login_group', 'sacig_login_form_title', array(
-            'type' => 'string',
-            'default' => 'Log In to Play',
-            'sanitize_callback' => 'sanitize_text_field'
-        ));
-        register_setting('sacig_login_group', 'sacig_login_show_register', array(
-            'type' => 'boolean',
-            'default' => true,
-            'sanitize_callback' => array($this, 'sanitize_checkbox')
-        ));
-        register_setting('sacig_login_group', 'sacig_login_redirect_url', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'esc_url_raw'
-        ));
-        register_setting('sacig_login_group', 'sacig_register_redirect_url', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'esc_url_raw'
-        ));
+        // Branding settings are registered by SACIG_Branding (class-sacig-branding.php).
+        // Login page settings are registered by SACIG_Login_Pages (class-sacig-login-pages.php).
+        // AI storyline settings are registered by SACIG_AI_Storyline (class-sacig-ai-storyline.php).
 
         // --- Leaderboard display settings group ---
         register_setting('sacig_leaderboard_group', 'sacig_leaderboard_title', array(
@@ -418,6 +401,8 @@ class SACIG_Admin {
 
     /**
      * Render the Branding settings page.
+     *
+     * Delegates to SACIG_Branding, which owns the branding settings.
      */
     public function render_branding_page() {
         if (!current_user_can('manage_options')) {
@@ -429,86 +414,40 @@ class SACIG_Admin {
         }
         settings_errors('sacig_messages');
 
-        $primary    = get_option('sacig_primary_color') ?: '#7c3aed';
-        $secondary  = get_option('sacig_secondary_color') ?: '#a855f7';
-        $accent     = get_option('sacig_accent_color') ?: '#e879f9';
-        $coin_image = get_option('sacig_coin_image', '');
-        $game_title = get_option('sacig_game_title', '');
-        $currency   = get_option('sacig_currency_name', 'Satoshis');
-        $footer     = get_option('sacig_footer_text', '');
-        ?>
-        <div class="wrap sacig-arcade-wrap">
-            <?php $this->render_arcade_header( __( 'Make the game your own', 'shortcodearcade-crypto-idle-game' ) ); ?>
+        $branding = $this->branding instanceof SACIG_Branding ? $this->branding : new SACIG_Branding();
+        $branding->render_settings_page();
+    }
 
-            <div class="sacig-admin-container">
-                <div class="sacig-admin-main">
-                    <div class="sacig-arcade-card">
-                        <form action="options.php" method="post">
-                            <?php settings_fields('sacig_branding_group'); ?>
-                            <table class="form-table" role="presentation">
-                                <tr>
-                                    <th scope="row"><label for="sacig_game_title">Game Title</label></th>
-                                    <td>
-                                        <input type="text" id="sacig_game_title" name="sacig_game_title" class="regular-text" value="<?php echo esc_attr($game_title); ?>" placeholder="Crypto Idle Game">
-                                        <p class="description">Custom title shown above the game. Leave blank for default.</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row"><label for="sacig_currency_name">Currency Name</label></th>
-                                    <td>
-                                        <input type="text" id="sacig_currency_name" name="sacig_currency_name" class="regular-text" value="<?php echo esc_attr($currency); ?>">
-                                        <p class="description">The in-game currency name (default: Satoshis).</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row"><label for="sacig_coin_image">Coin Image URL</label></th>
-                                    <td>
-                                        <input type="url" id="sacig_coin_image" name="sacig_coin_image" class="regular-text" value="<?php echo esc_url($coin_image); ?>" placeholder="https://example.com/coin.png">
-                                        <p class="description">Replace the default coin with your own token image.</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row"><label for="sacig_primary_color">Primary Color</label></th>
-                                    <td><input type="color" id="sacig_primary_color" name="sacig_primary_color" value="<?php echo esc_attr($primary); ?>"></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row"><label for="sacig_secondary_color">Secondary Color</label></th>
-                                    <td><input type="color" id="sacig_secondary_color" name="sacig_secondary_color" value="<?php echo esc_attr($secondary); ?>"></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row"><label for="sacig_accent_color">Accent Color</label></th>
-                                    <td><input type="color" id="sacig_accent_color" name="sacig_accent_color" value="<?php echo esc_attr($accent); ?>"></td>
-                                </tr>
-                                <tr>
-                                    <th scope="row"><label for="sacig_footer_text">Footer Text</label></th>
-                                    <td>
-                                        <input type="text" id="sacig_footer_text" name="sacig_footer_text" class="regular-text" value="<?php echo esc_attr($footer); ?>">
-                                        <p class="description">Optional text shown in the game footer.</p>
-                                    </td>
-                                </tr>
-                            </table>
-                            <?php submit_button('Save Branding'); ?>
-                        </form>
-                    </div>
-                </div>
+    /**
+     * Render the AI Storyline settings page.
+     *
+     * Delegates to SACIG_AI_Storyline, which owns the AI settings.
+     */
+    public function render_ai_storyline_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
 
-                <div class="sacig-admin-sidebar">
-                    <div class="sacig-sidebar-box">
-                        <h3><span class="dashicons dashicons-art"></span> Branding Tips</h3>
-                        <ul>
-                            <li>Use a square, transparent PNG for the coin image.</li>
-                            <li>Pick high-contrast colors for readability.</li>
-                            <li>Changes apply instantly across the game UI.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <?php
+        // Handle cache-flushed notice.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( isset( $_GET['cache-flushed'] ) && '1' === $_GET['cache-flushed'] ) {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'AI story cache cleared.', 'shortcodearcade-crypto-idle-game' ) . '</p></div>';
+        }
+
+        // Saving settings clears the cache so milestone stories regenerate with new options.
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ( isset( $_GET['settings-updated'] ) ) {
+            SACIG_AI_Storyline::flush_cache();
+        }
+
+        $ai = $this->ai_storyline instanceof SACIG_AI_Storyline ? $this->ai_storyline : new SACIG_AI_Storyline();
+        $ai->render_settings_page();
     }
 
     /**
      * Render the Login Pages settings page.
+     *
+     * Delegates to SACIG_Login_Pages, which owns the login settings.
      */
     public function render_login_page() {
         if (!current_user_can('manage_options')) {
@@ -520,76 +459,8 @@ class SACIG_Admin {
         }
         settings_errors('sacig_messages');
 
-        $form_title    = get_option('sacig_login_form_title', 'Log In to Play');
-        $show_register = get_option('sacig_login_show_register', true);
-        $login_url     = get_option('sacig_login_redirect_url', '');
-        $register_url  = get_option('sacig_register_redirect_url', '');
-        ?>
-        <div class="wrap sacig-arcade-wrap">
-            <?php $this->render_arcade_header( __( 'Branded login & registration', 'shortcodearcade-crypto-idle-game' ) ); ?>
-
-            <div class="sacig-admin-container">
-                <div class="sacig-admin-main">
-                    <div class="sacig-arcade-card">
-                        <form action="options.php" method="post">
-                            <?php settings_fields('sacig_login_group'); ?>
-                            <table class="form-table" role="presentation">
-                                <tr>
-                                    <th scope="row"><label for="sacig_login_form_title">Login Form Title</label></th>
-                                    <td>
-                                        <input type="text" id="sacig_login_form_title" name="sacig_login_form_title" class="regular-text" value="<?php echo esc_attr($form_title); ?>">
-                                        <p class="description">Heading shown above the login form.</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row">Registration Link</th>
-                                    <td>
-                                        <label>
-                                            <input type="hidden" name="sacig_login_show_register" value="0">
-                                            <input type="checkbox" name="sacig_login_show_register" value="1" <?php checked($show_register, true); ?>>
-                                            Show a "Register" link on the login form
-                                        </label>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row"><label for="sacig_login_redirect_url">Login Redirect URL</label></th>
-                                    <td>
-                                        <input type="url" id="sacig_login_redirect_url" name="sacig_login_redirect_url" class="regular-text" value="<?php echo esc_url($login_url); ?>" placeholder="https://example.com/play">
-                                        <p class="description">Where players go after logging in. Leave blank to stay on the same page.</p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th scope="row"><label for="sacig_register_redirect_url">Register Redirect URL</label></th>
-                                    <td>
-                                        <input type="url" id="sacig_register_redirect_url" name="sacig_register_redirect_url" class="regular-text" value="<?php echo esc_url($register_url); ?>" placeholder="https://example.com/welcome">
-                                        <p class="description">Where players go after registering.</p>
-                                    </td>
-                                </tr>
-                            </table>
-                            <?php submit_button('Save Login Settings'); ?>
-                        </form>
-                    </div>
-
-                    <div class="sacig-info-box">
-                        <h3><span class="dashicons dashicons-shortcode"></span> Shortcodes</h3>
-                        <p><strong>Login form:</strong> <code>[sacig_crypto_idle_login]</code></p>
-                        <p><strong>Register form:</strong> <code>[sacig_crypto_idle_register]</code></p>
-                    </div>
-                </div>
-
-                <div class="sacig-admin-sidebar">
-                    <div class="sacig-sidebar-box">
-                        <h3><span class="dashicons dashicons-lock"></span> Why Custom Login?</h3>
-                        <ul>
-                            <li>Keep players inside your branded experience.</li>
-                            <li>Send users straight to the game after login.</li>
-                            <li>Works with standard WordPress accounts.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <?php
+        $login = $this->login_pages instanceof SACIG_Login_Pages ? $this->login_pages : new SACIG_Login_Pages();
+        $login->render_settings_page();
     }
 
     /**
@@ -830,6 +701,9 @@ class SACIG_Admin {
                 'copiedLabel' => __( 'Copied!', 'shortcodearcade-crypto-idle-game' ),
                 'tooltipCloudSaves' => __( 'Saves game data to WordPress database. Requires users to be logged in.', 'shortcodearcade-crypto-idle-game' ),
                 'tooltipLeaderboard' => __( 'Display top players using the [sacig_crypto_idle_leaderboard] shortcode.', 'shortcodearcade-crypto-idle-game' ),
+                'selectCoinImage' => __( 'Select Coin Image', 'shortcodearcade-crypto-idle-game' ),
+                'useThisImage' => __( 'Use this image', 'shortcodearcade-crypto-idle-game' ),
+                'noCoinImage' => __( 'No custom coin image set', 'shortcodearcade-crypto-idle-game' ),
             )
         );
     }

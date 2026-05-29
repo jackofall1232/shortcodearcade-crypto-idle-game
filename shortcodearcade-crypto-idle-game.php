@@ -73,6 +73,9 @@ final class SACIG_Bootstrap {
 		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-miner-shortcode.php';
 		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-admin.php';
 		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-cloud-save.php';
+		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-branding.php';
+		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-login-pages.php';
+		require_once SACIG_PLUGIN_DIR . 'includes/class-sacig-ai-storyline.php';
 	}
 
 	/**
@@ -80,12 +83,18 @@ final class SACIG_Bootstrap {
 	 */
 	private function init_components() {
 		new SACIG_Miner_Shortcode();
-
-		if ( is_admin() ) {
-			new SACIG_Admin();
-		}
-
 		new SACIG_Cloud_Save();
+
+		// Feature modules register their own hooks/shortcodes/REST routes.
+		$branding = new SACIG_Branding();
+		$login    = new SACIG_Login_Pages();
+		$ai       = new SACIG_AI_Storyline();
+
+		// Admin reuses the single feature instances above instead of constructing
+		// new hook-registering objects when rendering each settings page.
+		if ( is_admin() ) {
+			new SACIG_Admin( $branding, $login, $ai );
+		}
 	}
 
 	/**

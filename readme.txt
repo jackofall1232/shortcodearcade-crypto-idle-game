@@ -79,6 +79,18 @@ This plugin uses the following external services:
 
 All font requests are made directly from the user's browser to Google's servers. No personal data is collected or stored by this plugin.
 
+**AI Storyline (Optional)**
+
+The AI Storyline feature is optional and disabled by default. When enabled:
+
+* Service: Anthropic Claude Haiku 4.5, OpenAI GPT-4o Mini / GPT-5 Mini, or xAI Grok 4.1
+* Purpose: Generates short narrative popup messages when players hit upgrade milestones
+* Data Shared: Only the event type and upgrade name are sent (no user data, no personal information)
+* When Used: Only when a player triggers an upgrade or prestige event and AI Storyline is enabled
+* API Keys: Stored in WordPress options, never exposed to the frontend
+* Caching: Responses cached for 24 hours — minimal API calls
+* Fallback: If the API call fails, the popup is silently skipped — no errors shown to players
+
 == Installation ==
 
 = Automatic Installation =
@@ -129,6 +141,17 @@ Local saves are stored in browser localStorage. Cloud saves are stored in WordPr
 = Is it compatible with WordPress 7.0? =
 
 Yes. Version 1.0.0 is fully tested and compatible with WordPress 7.0, with all code updated to align with modern WordPress standards and best practices.
+
+= Does the plugin send data to external servers? =
+
+Only if the optional AI Storyline feature is enabled. When enabled, the upgrade event type
+and upgrade name are sent to your configured AI provider (Anthropic, OpenAI, or xAI).
+No user data or personal information is transmitted. The feature is disabled by default.
+
+= Which AI providers are supported? =
+
+Claude Haiku 4.5 (Anthropic), GPT-4o Mini and GPT-5 Mini (OpenAI), and Grok 4.1 Fast (xAI).
+You must supply your own API key in Settings → AI Storyline.
 
 == Screenshots ==
 
