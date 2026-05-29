@@ -4,7 +4,7 @@ Donate link: https://shortcodearcade.com
 Tags: game, idle game, crypto, clicker game, mining game
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.0.0
+Stable tag: 2.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -134,6 +134,15 @@ Yes. Version 1.0.0 is fully tested and compatible with WordPress 7.0, with all c
 6. Admin settings panel  
 
 == Changelog ==
+
+= 2.0.0 =
+* NEW: All features now free — no Pro version required
+* NEW: Top-level admin menu with Arcade-themed UI
+* NEW: Branding, Login Pages, and Leaderboard settings fully unlocked
+* NEW: Purple neon arcade admin design
+* NEW: About page with shortcode reference and plugin info
+* UPDATED: WordPress 7.0 compatibility confirmed
+* FIXED: GitHub Actions deploy workflow env var correction
 
 = 1.0.0 =
 * Stable release
