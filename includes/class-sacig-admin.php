@@ -253,6 +253,7 @@ class SACIG_Admin {
         $value = get_option('sacig_enable_cloud_saves', false);
         ?>
         <label>
+            <input type="hidden" name="sacig_enable_cloud_saves" value="0">
             <input type="checkbox" name="sacig_enable_cloud_saves" value="1" <?php checked($value, true); ?>>
             Save game progress to WordPress user accounts
         </label>
@@ -271,6 +272,7 @@ class SACIG_Admin {
         $disabled = !$cloud_enabled;
         ?>
         <label>
+            <input type="hidden" name="sacig_enable_leaderboard" value="0">
             <input type="checkbox" name="sacig_enable_leaderboard" value="1"
                 <?php checked($value, true); ?>
                 <?php disabled($disabled); ?>>
@@ -427,9 +429,9 @@ class SACIG_Admin {
         }
         settings_errors('sacig_messages');
 
-        $primary    = get_option('sacig_primary_color', '#7c3aed');
-        $secondary  = get_option('sacig_secondary_color', '#a855f7');
-        $accent     = get_option('sacig_accent_color', '#e879f9');
+        $primary    = get_option('sacig_primary_color') ?: '#7c3aed';
+        $secondary  = get_option('sacig_secondary_color') ?: '#a855f7';
+        $accent     = get_option('sacig_accent_color') ?: '#e879f9';
         $coin_image = get_option('sacig_coin_image', '');
         $game_title = get_option('sacig_game_title', '');
         $currency   = get_option('sacig_currency_name', 'Satoshis');
@@ -461,7 +463,7 @@ class SACIG_Admin {
                                 <tr>
                                     <th scope="row"><label for="sacig_coin_image">Coin Image URL</label></th>
                                     <td>
-                                        <input type="url" id="sacig_coin_image" name="sacig_coin_image" class="regular-text" value="<?php echo esc_attr($coin_image); ?>" placeholder="https://example.com/coin.png">
+                                        <input type="url" id="sacig_coin_image" name="sacig_coin_image" class="regular-text" value="<?php echo esc_url($coin_image); ?>" placeholder="https://example.com/coin.png">
                                         <p class="description">Replace the default coin with your own token image.</p>
                                     </td>
                                 </tr>
@@ -543,6 +545,7 @@ class SACIG_Admin {
                                     <th scope="row">Registration Link</th>
                                     <td>
                                         <label>
+                                            <input type="hidden" name="sacig_login_show_register" value="0">
                                             <input type="checkbox" name="sacig_login_show_register" value="1" <?php checked($show_register, true); ?>>
                                             Show a "Register" link on the login form
                                         </label>
@@ -551,14 +554,14 @@ class SACIG_Admin {
                                 <tr>
                                     <th scope="row"><label for="sacig_login_redirect_url">Login Redirect URL</label></th>
                                     <td>
-                                        <input type="url" id="sacig_login_redirect_url" name="sacig_login_redirect_url" class="regular-text" value="<?php echo esc_attr($login_url); ?>" placeholder="https://example.com/play">
+                                        <input type="url" id="sacig_login_redirect_url" name="sacig_login_redirect_url" class="regular-text" value="<?php echo esc_url($login_url); ?>" placeholder="https://example.com/play">
                                         <p class="description">Where players go after logging in. Leave blank to stay on the same page.</p>
                                     </td>
                                 </tr>
                                 <tr>
                                     <th scope="row"><label for="sacig_register_redirect_url">Register Redirect URL</label></th>
                                     <td>
-                                        <input type="url" id="sacig_register_redirect_url" name="sacig_register_redirect_url" class="regular-text" value="<?php echo esc_attr($register_url); ?>" placeholder="https://example.com/welcome">
+                                        <input type="url" id="sacig_register_redirect_url" name="sacig_register_redirect_url" class="regular-text" value="<?php echo esc_url($register_url); ?>" placeholder="https://example.com/welcome">
                                         <p class="description">Where players go after registering.</p>
                                     </td>
                                 </tr>
@@ -604,7 +607,7 @@ class SACIG_Admin {
 
         $title        = get_option('sacig_leaderboard_title', 'Leaderboard');
         $show_avatars = get_option('sacig_leaderboard_show_avatars', true);
-        $highlight    = get_option('sacig_leaderboard_highlight_color', '#7c3aed');
+        $highlight    = get_option('sacig_leaderboard_highlight_color') ?: '#7c3aed';
         $limit        = get_option('sacig_leaderboard_limit', 10);
         $enabled      = get_option('sacig_enable_leaderboard', false);
         ?>
@@ -635,6 +638,7 @@ class SACIG_Admin {
                                     <th scope="row">Player Avatars</th>
                                     <td>
                                         <label>
+                                            <input type="hidden" name="sacig_leaderboard_show_avatars" value="0">
                                             <input type="checkbox" name="sacig_leaderboard_show_avatars" value="1" <?php checked($show_avatars, true); ?>>
                                             Show player avatars in the leaderboard
                                         </label>
@@ -742,7 +746,7 @@ class SACIG_Admin {
         $table_name = $wpdb->prefix . 'sacig_saves';
         $charset_collate = $wpdb->get_charset_collate();
 
-        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        $sql = "CREATE TABLE $table_name (
             user_id bigint(20) UNSIGNED NOT NULL,
             save_data longtext NOT NULL,
             base_click_power decimal(20,6) DEFAULT 1,
@@ -751,7 +755,7 @@ class SACIG_Admin {
             total_satoshis decimal(30,6) DEFAULT 0,
             rank_score decimal(30,6) DEFAULT 0,
             last_updated datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (user_id),
+            PRIMARY KEY  (user_id),
             KEY rank_score (rank_score DESC),
             KEY last_updated (last_updated)
         ) $charset_collate;";
