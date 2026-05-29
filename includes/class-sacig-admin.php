@@ -714,7 +714,7 @@ class SACIG_Admin {
 
                     <div class="sacig-arcade-card sacig-info-card">
                         <h3>&#x1F916; WordPress 7.0 AI Client</h3>
-                        <p>WordPress 7.0 introduces a native AI Client API and Connections Screen for central API key management. A future update will optionally integrate with this system. For now, manage your AI provider keys in the AI Settings tab.</p>
+                        <p>WordPress 7.0 introduces a native AI Client API and Connections Screen for central API key management. A future update will optionally integrate with this system so the game can use your site's centrally managed AI provider keys.</p>
                     </div>
                 </div>
 

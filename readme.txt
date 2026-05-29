@@ -48,6 +48,12 @@ Display the game with custom ad code:
 Display the leaderboard (requires cloud saves):
 `[sacig_crypto_idle_leaderboard]`
 
+Display a branded login form:
+`[sacig_crypto_idle_login]`
+
+Display a branded registration form:
+`[sacig_crypto_idle_register]`
+
 **Cloud Saves & Leaderboards:**
 
 When enabled in **Settings → Crypto Idle Game**, cloud saves allow you to:
@@ -138,7 +144,9 @@ Yes. Version 1.0.0 is fully tested and compatible with WordPress 7.0, with all c
 = 2.0.0 =
 * NEW: All features now free — no Pro version required
 * NEW: Top-level admin menu with Arcade-themed UI
-* NEW: Branding, Login Pages, and Leaderboard settings fully unlocked
+* NEW: Branding settings (game title, currency name, coin image, colors, footer) now apply to the live game
+* NEW: Login and registration shortcodes — [sacig_crypto_idle_login] and [sacig_crypto_idle_register] — with configurable titles and redirects
+* NEW: Leaderboard display settings (title, avatars, highlight color) now apply on the frontend
 * NEW: Purple neon arcade admin design
 * NEW: About page with shortcode reference and plugin info
 * UPDATED: WordPress 7.0 compatibility confirmed
