@@ -1,6 +1,5 @@
 === Shortcode Arcade Crypto Idle Game ===
 Contributors: jackofall1232
-Donate link: https://shortcodearcade.com
 Tags: game, idle game, crypto, clicker game, mining game
 Requires at least: 6.0
 Tested up to: 7.0
