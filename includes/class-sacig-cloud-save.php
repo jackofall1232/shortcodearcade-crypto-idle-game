@@ -281,6 +281,10 @@ class SACIG_Cloud_Save {
 		}
 		$diff_column = 'best_rank_score_' . $difficulty;
 
+		// Persist the authoritative difficulty back into the stored JSON so a
+		// reload reflects the enforced value (not a spoofed client one).
+		$save_data['difficulty'] = $difficulty;
+
 		$table_name = $wpdb->prefix . 'sacig_saves';
 
 		$encoded = wp_json_encode( $save_data );
