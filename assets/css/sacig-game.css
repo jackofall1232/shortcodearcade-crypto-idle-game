@@ -874,3 +874,115 @@
     transform: scale(1.05);
     box-shadow: var(--sacig-glow-magenta);
 }
+
+/* ===== Anti-bot button modes (1 real + N decoys) ===== */
+.sacig-button-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    position: relative;
+    z-index: 2;
+}
+
+/* Real and decoy buttons share the mine-button footprint but scale down so
+   multiple fit side by side. The real button reads slightly brighter. */
+.sacig-button-container .sacig-mine-button {
+    width: 180px;
+    height: 180px;
+    margin: 0;
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.sacig-real-button {
+    filter: drop-shadow(var(--sacig-glow-magenta)) brightness(1.1);
+}
+
+.sacig-decoy-button {
+    cursor: pointer;
+    opacity: 0.85;
+    filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.35));
+}
+
+.sacig-decoy-button:hover {
+    transform: scale(1.03);
+}
+
+/* Wrong-button shake feedback on decoy clicks. */
+.sacig-shake {
+    animation: sacig-shake 0.5s ease-in-out;
+}
+
+@keyframes sacig-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-10px) rotate(-3deg); }
+    40% { transform: translateX(10px) rotate(3deg); }
+    60% { transform: translateX(-8px) rotate(-2deg); }
+    80% { transform: translateX(8px) rotate(2deg); }
+}
+
+/* "Wrong button!" flash reuses the floating particle, tinted magenta. */
+.sacig-wrong-flash {
+    color: var(--sacig-neon-magenta);
+    font-size: 1.2rem;
+    text-shadow: var(--sacig-glow-magenta);
+}
+
+/* ===== Self-reset (NEW RUN) control ===== */
+.sacig-self-reset-button {
+    margin-top: 15px;
+    font-size: 1.2rem;
+    padding: 14px 40px;
+    background: linear-gradient(45deg, var(--sacig-neon-cyan), var(--sacig-neon-yellow));
+}
+
+/* ===== Player difficulty selector ===== */
+.sacig-difficulty-selector {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.sacig-difficulty-label {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    color: var(--sacig-neon-cyan);
+    letter-spacing: 1px;
+}
+
+.sacig-difficulty-button {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    padding: 8px 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid var(--sacig-neon-cyan);
+    border-radius: 10px;
+    color: var(--sacig-neon-cyan);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sacig-difficulty-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px var(--sacig-neon-cyan);
+}
+
+.sacig-difficulty-button.sacig-active {
+    background: linear-gradient(45deg, var(--sacig-neon-magenta), var(--sacig-neon-cyan));
+    border-color: var(--sacig-neon-yellow);
+    color: #000;
+    box-shadow: 0 0 20px var(--sacig-neon-magenta);
+}
+
+@media (max-width: 768px) {
+    .sacig-button-container .sacig-mine-button {
+        width: 130px;
+        height: 130px;
+    }
+}
