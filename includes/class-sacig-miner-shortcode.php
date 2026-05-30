@@ -112,6 +112,11 @@ class SACIG_Miner_Shortcode {
     private function localize_script() {
         $cloud_saves_enabled = get_option('sacig_enable_cloud_saves', false);
 
+        // Custom upgrade names from branding (10-element, 0-indexed array).
+        $upgrade_names = class_exists('SACIG_Branding')
+            ? SACIG_Branding::get_branding_settings()['upgrade_names']
+            : array();
+
         $script_data = array(
             'cloudSavesEnabled' => $cloud_saves_enabled,
             'isUserLoggedIn' => is_user_logged_in(),
@@ -119,6 +124,27 @@ class SACIG_Miner_Shortcode {
             'nonce' => wp_create_nonce('wp_rest'),
             'userId' => get_current_user_id(),
             'currencyName' => get_option('sacig_currency_name') ?: 'Satoshis',
+            'upgradeNames' => $upgrade_names,
+            'labels' => array(
+                'perClick'         => __( 'Per Click', 'shortcodearcade-crypto-idle-game' ),
+                'perSecond'        => __( 'Per Second', 'shortcodearcade-crypto-idle-game' ),
+                'minerRating'      => __( 'Miner Rating', 'shortcodearcade-crypto-idle-game' ),
+                'minersActive'     => __( 'Miners Active', 'shortcodearcade-crypto-idle-game' ),
+                'minersStopped'    => __( 'Miners Stopped', 'shortcodearcade-crypto-idle-game' ),
+                'minersRestart'    => __( 'Restart', 'shortcodearcade-crypto-idle-game' ),
+                'hardFork'         => __( 'Hard Fork', 'shortcodearcade-crypto-idle-game' ),
+                'hardForkDesc'     => __( 'Reset with permanent +10% bonus to all production', 'shortcodearcade-crypto-idle-game' ),
+                'chaosLevel'       => __( 'Chaos Level', 'shortcodearcade-crypto-idle-game' ),
+                'difficultyLabel'  => __( 'Difficulty', 'shortcodearcade-crypto-idle-game' ),
+                'difficultyEasy'   => __( 'Easy', 'shortcodearcade-crypto-idle-game' ),
+                'difficultyMedium' => __( 'Medium', 'shortcodearcade-crypto-idle-game' ),
+                'difficultyHard'   => __( 'Hard', 'shortcodearcade-crypto-idle-game' ),
+                'findCoinPrompt'   => __( 'Find the brighter coin to mine!', 'shortcodearcade-crypto-idle-game' ),
+                'wrongButton'      => __( 'Wrong button!', 'shortcodearcade-crypto-idle-game' ),
+                'leaderboardTitle' => __( 'Top Players', 'shortcodearcade-crypto-idle-game' ),
+                'prestigeColumn'   => __( 'Prestige', 'shortcodearcade-crypto-idle-game' ),
+                'bestScoreColumn'  => __( 'Best Score', 'shortcodearcade-crypto-idle-game' ),
+            ),
         );
 
         wp_localize_script('sacig-game-js', 'sacigSettings', $script_data);
@@ -243,6 +269,11 @@ class SACIG_Miner_Shortcode {
                 </div>
             </div>
 
+            <div class="sacig-miner-status-bar">
+                <span class="sacig-miner-status sacig-miners-active" id="sacig-minerStatus"><?php esc_html_e('Miners Active', 'shortcodearcade-crypto-idle-game'); ?></span>
+                <button type="button" class="sacig-prestige-button sacig-restart-miners-button" id="sacig-restartMinersButton" onclick="sacigRestartMiners()" style="display:none;"><?php esc_html_e('Restart', 'shortcodearcade-crypto-idle-game'); ?></button>
+            </div>
+
             <div class="sacig-prestige-section">
                 <div class="sacig-prestige-info">
                     Hard Fork available at 1,000,000 <?php echo esc_html(strtolower($currency_name)); ?><br>
@@ -329,17 +360,110 @@ class SACIG_Miner_Shortcode {
         // Parse attributes
         $atts = shortcode_atts(
             array(
-                'limit' => get_option('sacig_leaderboard_limit', 10),
+                'limit'      => get_option('sacig_leaderboard_limit', 10),
+                'difficulty' => '',
             ),
             $atts,
             'sacig_crypto_idle_leaderboard'
         );
 
-        // Get leaderboard data
+        $limit    = intval($atts['limit']);
+        $att_diff = strtolower(trim((string) $atts['difficulty']));
+
+        $allow_player_difficulty = (bool) get_option('sacig_allow_player_difficulty', false);
+
+        // Display options
+        $lb_title      = get_option('sacig_leaderboard_title') ?: 'Leaderboard';
+        $show_avatars  = get_option('sacig_leaderboard_show_avatars', true);
+        $highlight     = get_option('sacig_leaderboard_highlight_color') ?: '#7c3aed';
+        $currency_name = get_option('sacig_currency_name') ?: 'Satoshis';
+
+        ob_start();
+
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value escaped inside get_branding_style()
+        echo $this->get_branding_style();
+        ?>
+        <div class="sacig-leaderboard-container">
+            <h2 class="sacig-leaderboard-title">&#x1F3C6; <?php echo esc_html($lb_title); ?></h2>
+            <?php
+            if ($allow_player_difficulty && '' === $att_diff) {
+                // Tabbed per-difficulty leaderboard.
+                $difficulties = array(
+                    'easy'   => __( 'Easy', 'shortcodearcade-crypto-idle-game' ),
+                    'medium' => __( 'Medium', 'shortcodearcade-crypto-idle-game' ),
+                    'hard'   => __( 'Hard', 'shortcodearcade-crypto-idle-game' ),
+                );
+                $default_tab = 'medium';
+                ?>
+                <div class="sacig-leaderboard-tabs">
+                    <?php foreach ($difficulties as $diff => $diff_label) : ?>
+                        <button type="button" class="sacig-leaderboard-tab<?php echo ($diff === $default_tab) ? ' sacig-lb-tab-active' : ''; ?>" data-difficulty="<?php echo esc_attr($diff); ?>">
+                            <?php echo esc_html($diff_label); ?>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+                <?php
+                foreach ($difficulties as $diff => $diff_label) :
+                    $results = SACIG_Cloud_Save::get_leaderboard_by_difficulty($diff, $limit);
+                    $hidden  = ($diff === $default_tab) ? '' : ' style="display:none;"';
+                    /* translators: %s: difficulty name (Easy/Medium/Hard). */
+                    $empty   = sprintf(__('No players on %s yet. Be the first!', 'shortcodearcade-crypto-idle-game'), $diff_label);
+                    ?>
+                    <div class="sacig-leaderboard-panel" data-difficulty="<?php echo esc_attr($diff); ?>"<?php echo $hidden; ?>>
+                        <?php
+                        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- markup escaped inside render_leaderboard_table()
+                        echo $this->render_leaderboard_table($results, $show_avatars, $highlight, $currency_name, $empty);
+                        ?>
+                    </div>
+                    <?php
+                endforeach;
+                ?>
+                <script>
+                // Bind once per page (delegated) so multiple leaderboards can coexist
+                // and the script block emitting more than once never double-binds.
+                (function () {
+                    if (window.sacigLeaderboardTabsBound) { return; }
+                    window.sacigLeaderboardTabsBound = true;
+                    document.addEventListener('click', function (e) {
+                        var tab = e.target.closest ? e.target.closest('.sacig-leaderboard-tab') : null;
+                        if (!tab) { return; }
+                        var container = tab.closest('.sacig-leaderboard-container');
+                        if (!container) { return; }
+                        var diff = tab.dataset.difficulty;
+                        container.querySelectorAll('.sacig-leaderboard-tab').forEach(function (t) { t.classList.remove('sacig-lb-tab-active'); });
+                        container.querySelectorAll('.sacig-leaderboard-panel').forEach(function (p) { p.style.display = 'none'; });
+                        tab.classList.add('sacig-lb-tab-active');
+                        var panel = container.querySelector('.sacig-leaderboard-panel[data-difficulty="' + diff + '"]');
+                        if (panel) { panel.style.display = ''; }
+                    });
+                })();
+                </script>
+                <?php
+            } else {
+                // Flat leaderboard (player difficulty disabled, or an explicit difficulty attribute passed).
+                $results = $this->query_flat_leaderboard($limit);
+                $empty   = __('No players yet. Be the first!', 'shortcodearcade-crypto-idle-game');
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- markup escaped inside render_leaderboard_table()
+                echo $this->render_leaderboard_table($results, $show_avatars, $highlight, $currency_name, $empty);
+            }
+            ?>
+        </div>
+        <?php
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Query the all-time flat leaderboard, ranked by best score (legacy behavior).
+     *
+     * @param int $limit Maximum rows to return.
+     * @return array Row arrays (ARRAY_A) with a `rank_score` score key.
+     */
+    private function query_flat_leaderboard($limit) {
         global $wpdb;
         $table_name  = $wpdb->prefix . 'sacig_saves';
         $users_table = $wpdb->users;
-        $limit       = intval($atts['limit']);
+        $limit       = intval($limit);
 
         // Direct query required: leaderboard aggregation with JOIN and ORDER BY on custom table.
         // No WP_Query or equivalent API supports cross-table aggregation with custom tables.
@@ -366,78 +490,83 @@ class SACIG_Miner_Shortcode {
         );
         // phpcs:enable
 
-        // Display options
-        $lb_title      = get_option('sacig_leaderboard_title') ?: 'Leaderboard';
-        $show_avatars  = get_option('sacig_leaderboard_show_avatars', true);
-        $highlight     = get_option('sacig_leaderboard_highlight_color') ?: '#7c3aed';
-        $currency_name = get_option('sacig_currency_name') ?: 'Satoshis';
+        return is_array($results) ? $results : array();
+    }
 
-        // Start output
+    /**
+     * Render a single leaderboard table (or the empty-state message).
+     *
+     * Both query paths expose the score under the `rank_score` key.
+     *
+     * @param array  $results       Row arrays (ARRAY_A).
+     * @param bool   $show_avatars  Whether to render player avatars.
+     * @param string $highlight     Highlight color for the current user's row.
+     * @param string $currency_name Currency column header label.
+     * @param string $empty_message Message shown when there are no rows.
+     * @return string Escaped HTML.
+     */
+    private function render_leaderboard_table($results, $show_avatars, $highlight, $currency_name, $empty_message) {
         ob_start();
 
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value escaped inside get_branding_style()
-        echo $this->get_branding_style();
+        if (empty($results)) {
+            ?>
+            <p class="sacig-leaderboard-empty"><?php echo esc_html($empty_message); ?></p>
+            <?php
+            return ob_get_clean();
+        }
         ?>
-        <div class="sacig-leaderboard-container">
-            <h2 class="sacig-leaderboard-title">&#x1F3C6; <?php echo esc_html($lb_title); ?></h2>
+        <table class="sacig-leaderboard-table">
+            <thead>
+                <tr>
+                    <th class="sacig-rank">Rank</th>
+                    <th class="sacig-player">Player</th>
+                    <th class="sacig-satoshis"><?php echo esc_html($currency_name); ?></th>
+                    <th class="sacig-prestige">Prestige</th>
+                    <th class="sacig-score">Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $rank = 1;
+                foreach ($results as $row):
+                    $rank_class = '';
+                    if ($rank === 1) $rank_class = 'sacig-rank-1';
+                    elseif ($rank === 2) $rank_class = 'sacig-rank-2';
+                    elseif ($rank === 3) $rank_class = 'sacig-rank-3';
 
-            <?php if (empty($results)): ?>
-                <p class="sacig-leaderboard-empty">No players yet. Be the first!</p>
-            <?php else: ?>
-                <table class="sacig-leaderboard-table">
-                    <thead>
-                        <tr>
-                            <th class="sacig-rank">Rank</th>
-                            <th class="sacig-player">Player</th>
-                            <th class="sacig-satoshis"><?php echo esc_html($currency_name); ?></th>
-                            <th class="sacig-prestige">Prestige</th>
-                            <th class="sacig-score">Score</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php 
-                        $rank = 1;
-                        foreach ($results as $row): 
-                            $rank_class = '';
-                            if ($rank === 1) $rank_class = 'sacig-rank-1';
-                            elseif ($rank === 2) $rank_class = 'sacig-rank-2';
-                            elseif ($rank === 3) $rank_class = 'sacig-rank-3';
-                            
-                            $is_current_user = is_user_logged_in() && get_current_user_id() == $row['user_id'];
-                        ?>
-                        <tr class="<?php echo esc_attr($rank_class); ?> <?php echo $is_current_user ? 'sacig-current-user' : ''; ?>"<?php echo $is_current_user ? ' style="box-shadow: inset 4px 0 0 ' . esc_attr($highlight) . ';"' : ''; ?>>
-                            <td class="sacig-rank">
-                                <?php if ($rank <= 3): ?>
-                                    <span class="sacig-medal">
-                                        <?php echo $rank === 1 ? '🥇' : ($rank === 2 ? '🥈' : '🥉'); ?>
-                                    </span>
-                                <?php else: ?>
-                                    <?php echo esc_html($rank); ?>
-                                <?php endif; ?>
-                            </td>
-                            <td class="sacig-player">
-                                <?php if ($show_avatars): ?>
-                                    <span class="sacig-avatar"><?php echo get_avatar($row['user_id'], 28); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_avatar() returns safe, escaped HTML ?></span>
-                                <?php endif; ?>
-                                <?php echo esc_html($row['display_name']); ?>
-                                <?php if ($is_current_user): ?>
-                                    <span class="sacig-you-badge">You</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="sacig-satoshis"><?php echo esc_html(number_format($row['total_satoshis'], 2)); ?></td>
-                            <td class="sacig-prestige">Level <?php echo esc_html($row['prestige_level']); ?></td>
-                            <td class="sacig-score"><?php echo esc_html(number_format($row['rank_score'], 0)); ?></td>
-                        </tr>
-                        <?php 
-                        $rank++;
-                        endforeach; 
-                        ?>
-                    </tbody>
-                </table>
-            <?php endif; ?>
-        </div>
+                    $is_current_user = is_user_logged_in() && get_current_user_id() == $row['user_id'];
+                    $score = $row['rank_score'] ?? 0;
+                ?>
+                <tr class="<?php echo esc_attr($rank_class); ?> <?php echo $is_current_user ? 'sacig-current-user' : ''; ?>"<?php echo $is_current_user ? ' style="box-shadow: inset 4px 0 0 ' . esc_attr($highlight) . ';"' : ''; ?>>
+                    <td class="sacig-rank">
+                        <?php if ($rank <= 3): ?>
+                            <span class="sacig-medal">
+                                <?php echo $rank === 1 ? '🥇' : ($rank === 2 ? '🥈' : '🥉'); ?>
+                            </span>
+                        <?php else: ?>
+                            <?php echo esc_html($rank); ?>
+                        <?php endif; ?>
+                    </td>
+                    <td class="sacig-player">
+                        <?php if ($show_avatars): ?>
+                            <span class="sacig-avatar"><?php echo get_avatar($row['user_id'], 28); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- get_avatar() returns safe, escaped HTML ?></span>
+                        <?php endif; ?>
+                        <?php echo esc_html($row['display_name']); ?>
+                        <?php if ($is_current_user): ?>
+                            <span class="sacig-you-badge">You</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="sacig-satoshis"><?php echo esc_html(number_format($row['total_satoshis'], 2)); ?></td>
+                    <td class="sacig-prestige">Level <?php echo esc_html($row['prestige_level']); ?></td>
+                    <td class="sacig-score"><?php echo esc_html(number_format($score, 0)); ?></td>
+                </tr>
+                <?php
+                $rank++;
+                endforeach;
+                ?>
+            </tbody>
+        </table>
         <?php
-
         return ob_get_clean();
     }
 

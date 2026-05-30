@@ -1,6 +1,6 @@
 /**
  * Shortcode Arcade Crypto Idle Game - Game Logic
- * Version: 0.4.6
+ * Version: 2.0.2
  *
  * Public window.* globals (intentional for gameplay):
  * - window.sacigMine() - Mining click handler
@@ -38,6 +38,8 @@
 		bestRankScoreEasy: 0,
 		bestRankScoreMedium: 0,
 		bestRankScoreHard: 0,
+		lastActiveTime: Date.now(),
+		minersActive: true,
 		version: '0.4.6'
 	};
 
@@ -49,6 +51,32 @@
 	// Branding (passed from WordPress). Falls back to the default currency name.
 	const sacigCurrency = (typeof sacigSettings !== 'undefined' && sacigSettings.currencyName) ? sacigSettings.currencyName : 'Satoshis';
 	const sacigCurrencyLc = sacigCurrency.toLowerCase();
+
+	// Custom upgrade names from branding settings. Index matches upgradeDefinitions
+	// order; an empty string means "use the hardcoded default for that tier".
+	const sacigUpgradeNames = (
+		typeof sacigSettings !== 'undefined' &&
+		Array.isArray(sacigSettings.upgradeNames)
+	) ? sacigSettings.upgradeNames : [];
+
+	function getUpgradeName(index, defaultName) {
+		const custom = sacigUpgradeNames[index];
+		return (typeof custom === 'string' && custom.trim()) ? custom.trim() : defaultName;
+	}
+
+	// UI label accessor — reads from sacigSettings.labels with a safe fallback.
+	const sacigLabels = (
+		typeof sacigSettings !== 'undefined' && sacigSettings.labels
+	) ? sacigSettings.labels : {};
+
+	function getLabel(key, fallback) {
+		const label = sacigLabels[key];
+		return (label === undefined || label === null || label === '') ? fallback : label;
+	}
+
+	// Passive miners stop after this much inactivity (48 hours) to discourage idle
+	// AFK farming. The player restarts them manually via sacigRestartMiners().
+	const MINER_TIMEOUT_MS = 48 * 60 * 60 * 1000;
 
 	// ===== DIFFICULTY SYSTEM =====
 
@@ -113,7 +141,7 @@
 	const upgradeDefinitions = [
 		{
 			id: 'betterClicker',
-			name: 'Better Pickaxe',
+			name: getUpgradeName(0, 'Better Pickaxe'),
 			baseEffect: 1,
 			baseDescription: 'Increases click power',
 			baseCost: 10,
@@ -123,7 +151,7 @@
 		},
 		{
 			id: 'cpuMiner',
-			name: 'CPU Miner',
+			name: getUpgradeName(1, 'CPU Miner'),
 			baseEffect: 0.1,
 			baseDescription: `Generates ${sacigCurrencyLc}/sec`,
 			baseCost: 50,
@@ -133,7 +161,7 @@
 		},
 		{
 			id: 'powerfulClicker',
-			name: 'Diamond Pickaxe',
+			name: getUpgradeName(2, 'Diamond Pickaxe'),
 			baseEffect: 5,
 			baseDescription: 'Increases click power',
 			baseCost: 100,
@@ -143,7 +171,7 @@
 		},
 		{
 			id: 'gpuRig',
-			name: 'GPU Mining Rig',
+			name: getUpgradeName(3, 'GPU Mining Rig'),
 			baseEffect: 1,
 			baseDescription: `Generates ${sacigCurrencyLc}/sec`,
 			baseCost: 500,
@@ -153,7 +181,7 @@
 		},
 		{
 			id: 'megaClicker',
-			name: 'Quantum Pickaxe',
+			name: getUpgradeName(4, 'Quantum Pickaxe'),
 			baseEffect: 25,
 			baseDescription: 'Increases click power',
 			baseCost: 1000,
@@ -163,7 +191,7 @@
 		},
 		{
 			id: 'asicMiner',
-			name: 'ASIC Miner',
+			name: getUpgradeName(5, 'ASIC Miner'),
 			baseEffect: 10,
 			baseDescription: `Generates ${sacigCurrencyLc}/sec`,
 			baseCost: 5000,
@@ -173,7 +201,7 @@
 		},
 		{
 			id: 'ultraClicker',
-			name: 'Neutron Star Drill',
+			name: getUpgradeName(6, 'Neutron Star Drill'),
 			baseEffect: 100,
 			baseDescription: 'Increases click power',
 			baseCost: 10000,
@@ -183,7 +211,7 @@
 		},
 		{
 			id: 'miningFarm',
-			name: 'Mining Farm',
+			name: getUpgradeName(7, 'Mining Farm'),
 			baseEffect: 50,
 			baseDescription: `Generates ${sacigCurrencyLc}/sec`,
 			baseCost: 50000,
@@ -193,7 +221,7 @@
 		},
 		{
 			id: 'godClicker',
-			name: 'Black Hole Extractor',
+			name: getUpgradeName(8, 'Black Hole Extractor'),
 			baseEffect: 500,
 			baseDescription: 'Increases click power',
 			baseCost: 100000,
@@ -203,7 +231,7 @@
 		},
 		{
 			id: 'datacenter',
-			name: 'Data Center',
+			name: getUpgradeName(9, 'Data Center'),
 			baseEffect: 250,
 			baseDescription: `Generates ${sacigCurrencyLc}/sec`,
 			baseCost: 500000,
@@ -357,6 +385,8 @@
 	 * Prestige multiplier is applied HERE at earn-time, not at upgrade purchase time
 	 */
 	window.sacigMine = function() {
+		recordActivity();
+
 		const earnedAmount = gameState.clickPower * gameState.prestigeMultiplier;
 		gameState.satoshis += earnedAmount;
 		gameState.satoshis = Number(gameState.satoshis.toFixed(6)); // Prevent floating point drift
@@ -389,6 +419,8 @@
 	 * Buy upgrade function
 	 */
 	window.sacigBuyUpgrade = function(upgradeId) {
+		recordActivity();
+
 		const upgrade = upgradeDefinitions.find(u => u.id === upgradeId);
 		if (!upgrade) return;
 
@@ -566,7 +598,7 @@
 				Hard Fork available at ${formatNumber(nextPrestigeCost)} ${sacigCurrencyLc}<br>
 				<span style="font-size: 0.9rem; opacity: 0.7;">
 					${gameState.prestigeLevel > 0 ? `Current Level: ${gameState.prestigeLevel} (+${currentBonus}% bonus)<br>` : ''}
-					Reset with permanent +10% bonus to all production
+					${getLabel('hardForkDesc', 'Reset with permanent +10% bonus to all production')}
 				</span>
 			`;
 		}
@@ -577,41 +609,128 @@
 	 * Prestige multiplier is applied HERE at earn-time, not at upgrade purchase time
 	 */
 	function passiveIncomeLoop() {
-		const earned = (gameState.passiveIncome * gameState.prestigeMultiplier) / 10;
-		gameState.satoshis += earned; // Update 10 times per second
-		gameState.satoshis = Number(gameState.satoshis.toFixed(6)); // Prevent floating point drift
+		// Stop passive miners after prolonged inactivity (anti-AFK farming).
+		if (gameState.minersActive) {
+			const timeSinceActive = Date.now() - (gameState.lastActiveTime || Date.now());
+			if (timeSinceActive >= MINER_TIMEOUT_MS) {
+				gameState.minersActive = false;
+				updateMinerStatusUI();
+			}
+		}
+
+		// Passive income only accrues while the miners are active. Skip the UI
+		// refresh entirely when nothing is earned to avoid 10x/sec DOM thrashing.
+		if (gameState.minersActive && gameState.passiveIncome > 0) {
+			const earned = (gameState.passiveIncome * gameState.prestigeMultiplier) / 10;
+			gameState.satoshis += earned; // Update 10 times per second
+			gameState.satoshis = Number(gameState.satoshis.toFixed(6)); // Prevent floating point drift
+			updateUI();
+		}
+	}
+
+	/**
+	 * Record player activity to keep the passive miners alive. Called on every
+	 * manual mine and upgrade purchase.
+	 */
+	function recordActivity() {
+		gameState.lastActiveTime = Date.now();
+	}
+
+	/**
+	 * Restart the passive miners after an inactivity timeout. Exposed globally so
+	 * the in-game "Restart" button can call it.
+	 */
+	window.sacigRestartMiners = function() {
+		gameState.minersActive = true;
+		gameState.lastActiveTime = Date.now();
+		updateMinerStatusUI();
 		updateUI();
+		saveGame();
+	};
+
+	/**
+	 * Reflect the miner active/stopped state in the status indicator and toggle
+	 * the restart button.
+	 */
+	function updateMinerStatusUI() {
+		const statusEl = document.getElementById('sacig-minerStatus');
+		const restartBtn = document.getElementById('sacig-restartMinersButton');
+
+		if (statusEl) {
+			if (gameState.minersActive) {
+				statusEl.textContent = getLabel('minersActive', 'Miners Active');
+				statusEl.classList.remove('sacig-miners-stopped');
+				statusEl.classList.add('sacig-miners-active');
+			} else {
+				statusEl.textContent = getLabel('minersStopped', 'Miners Stopped');
+				statusEl.classList.remove('sacig-miners-active');
+				statusEl.classList.add('sacig-miners-stopped');
+			}
+		}
+
+		if (restartBtn) {
+			restartBtn.textContent = getLabel('minersRestart', 'Restart');
+			restartBtn.style.display = gameState.minersActive ? 'none' : '';
+		}
 	}
 
 	/**
 	 * Calculate offline progress
 	 */
 	function calculateOfflineProgress() {
-		const lastSaveTime = localStorage.getItem('sacigLastSaveTime');
-		if (!lastSaveTime) return;
+		const lastSaveRaw = localStorage.getItem('sacigLastSaveTime');
+		if (!lastSaveRaw) return;
 
+		const lastSaveTime = Number(lastSaveRaw);
 		const now = Date.now();
-		const secondsAway = Math.min((now - lastSaveTime) / 1000, 86400); // Cap at 24 hours
 
-		// Only calculate if away for more than 60 seconds
-		if (secondsAway < 60) return;
-
-		const offlineEarned = secondsAway * gameState.passiveIncome * gameState.prestigeMultiplier;
-
-		if (offlineEarned > 0) {
-			gameState.satoshis += offlineEarned;
-			gameState.satoshis = Number(gameState.satoshis.toFixed(6));
-
-			// Show notification to player
-			const hours = Math.floor(secondsAway / 3600);
-			const minutes = Math.floor((secondsAway % 3600) / 60);
-			let timeAway = '';
-			if (hours > 0) timeAway = `${hours}h ${minutes}m`;
-			else timeAway = `${minutes}m`;
-
+		// Miners that had already stopped before the player left earn nothing
+		// offline — they must be restarted manually.
+		if (gameState.minersActive === false) {
 			setTimeout(() => {
-				alert(`Welcome back! You were away for ${timeAway} and earned ${formatNumber(offlineEarned)} ${sacigCurrencyLc}!`);
+				alert('Your miners had stopped before you left. Hit Restart to resume passive mining.');
 			}, 500);
+			return;
+		}
+
+		// Passive miners keep running offline only until the inactivity timeout
+		// (48h from the last activity). Offline earnings therefore end at whichever
+		// comes first: now, or the moment that timeout would have fired.
+		const timeoutAt   = (gameState.lastActiveTime || now) + MINER_TIMEOUT_MS;
+		const timedOut    = now >= timeoutAt;
+		const offlineEnd  = Math.min(now, timeoutAt);
+
+		// Seconds the miners actually ran offline (since the last save), clamped to
+		// the 24h offline cap.
+		const secondsAway = Math.min(Math.max(0, (offlineEnd - lastSaveTime) / 1000), 86400);
+
+		// Only calculate if the miners ran offline for more than 60 seconds.
+		if (secondsAway >= 60) {
+			const offlineEarned = secondsAway * gameState.passiveIncome * gameState.prestigeMultiplier;
+
+			if (offlineEarned > 0) {
+				gameState.satoshis += offlineEarned;
+				gameState.satoshis = Number(gameState.satoshis.toFixed(6));
+
+				// Show notification to player
+				const hours = Math.floor(secondsAway / 3600);
+				const minutes = Math.floor((secondsAway % 3600) / 60);
+				let timeAway = '';
+				if (hours > 0) timeAway = `${hours}h ${minutes}m`;
+				else timeAway = `${minutes}m`;
+
+				const suffix = timedOut ? ' Your miners have since stopped — hit Restart to resume.' : '';
+				setTimeout(() => {
+					alert(`Welcome back! You were away for ${timeAway} and earned ${formatNumber(offlineEarned)} ${sacigCurrencyLc}!${suffix}`);
+				}, 500);
+			}
+		}
+
+		// If the inactivity window elapsed while the player was away, the miners
+		// are now stopped (UI is refreshed by the updateMinerStatusUI() call that
+		// follows this in initGame()).
+		if (timedOut) {
+			gameState.minersActive = false;
 		}
 	}
 
@@ -1031,7 +1150,7 @@
 
 		const flash = document.createElement('div');
 		flash.className = 'sacig-click-particle sacig-wrong-flash';
-		flash.textContent = 'Wrong button!';
+		flash.textContent = getLabel('wrongButton', 'Wrong button!');
 		const rect = btn.getBoundingClientRect();
 		flash.style.left = (rect.left + rect.width / 2 - 40) + 'px';
 		flash.style.top = (rect.top + rect.height / 2) + 'px';
@@ -1200,7 +1319,7 @@
 
 		const label = document.createElement('span');
 		label.className = 'sacig-difficulty-label';
-		label.textContent = 'Difficulty:';
+		label.textContent = getLabel('difficultyLabel', 'Difficulty') + ':';
 		wrap.appendChild(label);
 
 		['easy', 'medium', 'hard'].forEach(function(d) {
@@ -1333,6 +1452,9 @@
 
 		// Calculate offline progress
 		calculateOfflineProgress();
+
+		// Reflect miner active/stopped state from the loaded save.
+		updateMinerStatusUI();
 
 		// Update UI
 		updateUI();
