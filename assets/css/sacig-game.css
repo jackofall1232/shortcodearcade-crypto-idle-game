@@ -986,3 +986,514 @@
         height: 130px;
     }
 }
+
+/* ==========================================================================
+   v2.1.0 — Miner status bar (Task 3)
+   ========================================================================== */
+.sacig-container .sacig-miner-status-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.sacig-container .sacig-miner-status {
+    font-weight: 600;
+}
+
+.sacig-container .sacig-miner-status.sacig-miners-active {
+    color: var(--sacig-neon-cyan);
+}
+
+.sacig-container .sacig-miner-status.sacig-miners-stopped {
+    color: #ff6b6b;
+    padding: 4px 12px;
+    border: 1px solid #ff6b6b;
+    border-radius: 8px;
+    animation: sacig-pulse-warning 2s ease-in-out infinite;
+}
+
+@keyframes sacig-pulse-warning {
+    0%, 100% { box-shadow: 0 0 5px rgba(255, 107, 107, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 107, 107, 0.8); }
+}
+
+/* The restart button also carries .sacig-prestige-button; the two-class
+   selector here outranks it so it renders compact. */
+.sacig-container .sacig-restart-miners-button {
+    padding: 8px 20px;
+    background: linear-gradient(45deg, var(--sacig-neon-cyan), var(--sacig-neon-magenta));
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sacig-container .sacig-restart-miners-button:hover {
+    transform: scale(1.05);
+    box-shadow: var(--sacig-glow-cyan);
+}
+
+/* ==========================================================================
+   v2.1.0 — Click area + real/decoy buttons + click hint (Tasks 8a, 9f)
+   ========================================================================== */
+.sacig-container .sacig-click-area {
+    position: relative;
+    z-index: 2;
+}
+
+/* Mode 1 keeps the original large centered button untouched. */
+.sacig-container .sacig-click-area[data-button-mode="1"] {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Multi-button modes get a fixed-height positioning surface. */
+.sacig-container .sacig-click-area[data-button-mode="2"],
+.sacig-container .sacig-click-area[data-button-mode="3"] {
+    min-height: 320px;
+    height: 320px;
+    border-radius: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.sacig-container .sacig-click-area[data-button-mode="2"] .sacig-mine-button,
+.sacig-container .sacig-click-area[data-button-mode="3"] .sacig-mine-button {
+    width: 140px;
+    height: 140px;
+    margin: 0;
+    position: absolute;
+    transition: transform 0.1s, left 0.5s ease-out, top 0.5s ease-out;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Real button glows; decoys are dimmed. */
+.sacig-container .sacig-click-area .sacig-real-button {
+    filter: drop-shadow(0 0 20px var(--sacig-neon-cyan)) brightness(1.1);
+    animation: sacig-realButtonGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes sacig-realButtonGlow {
+    from { filter: drop-shadow(0 0 20px var(--sacig-neon-cyan)) drop-shadow(0 0 40px var(--sacig-neon-cyan)) brightness(1.1); }
+    to   { filter: drop-shadow(0 0 30px var(--sacig-neon-magenta)) drop-shadow(0 0 60px var(--sacig-neon-magenta)) brightness(1.2); }
+}
+
+.sacig-container .sacig-click-area .sacig-decoy-button {
+    filter: brightness(0.6) saturate(0.7);
+    opacity: 0.7;
+}
+
+.sacig-container .sacig-click-area .sacig-decoy-button svg,
+.sacig-container .sacig-click-area .sacig-decoy-button .sacig-coin-image {
+    animation: sacig-floatSlow 4s ease-in-out infinite;
+}
+
+@keyframes sacig-floatSlow {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+.sacig-container .sacig-click-hint {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    padding: 10px 20px;
+    margin-top: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--sacig-neon-yellow);
+    border-radius: 10px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95rem;
+    color: var(--sacig-neon-yellow);
+    animation: sacig-hintPulse 2s ease-in-out infinite;
+}
+
+@keyframes sacig-hintPulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+/* Decoy ✗ indicator is appended to <body>, so it cannot be scoped to the
+   container; the sacig- prefix keeps it from leaking. */
+.sacig-decoy-indicator {
+    position: fixed;
+    pointer-events: none;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 2rem;
+    color: #ff4444;
+    text-shadow: 0 0 10px #ff0000;
+    animation: sacig-wrongFade 0.5s ease-out forwards;
+    z-index: 9999;
+}
+
+@keyframes sacig-wrongFade {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.5); }
+}
+
+@media (max-width: 768px) {
+    .sacig-container .sacig-click-area[data-button-mode="2"],
+    .sacig-container .sacig-click-area[data-button-mode="3"] {
+        min-height: 260px;
+        height: 260px;
+    }
+    .sacig-container .sacig-click-area[data-button-mode="2"] .sacig-mine-button,
+    .sacig-container .sacig-click-area[data-button-mode="3"] .sacig-mine-button {
+        width: 110px;
+        height: 110px;
+    }
+}
+
+/* ==========================================================================
+   v2.1.0 — Leaderboard difficulty tabs (Task 4)
+   ========================================================================== */
+.sacig-leaderboard-container .sacig-leaderboard-tabs {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 20px;
+    padding: 5px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+}
+
+.sacig-leaderboard-container .sacig-leaderboard-tab {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 12px 25px;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sacig-leaderboard-container .sacig-leaderboard-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    transform: scale(1.03);
+    box-shadow: 0 0 10px var(--sacig-neon-cyan);
+}
+
+.sacig-leaderboard-container .sacig-lb-tab-active {
+    background: linear-gradient(135deg, rgba(255, 0, 255, 0.25), rgba(0, 255, 255, 0.25));
+    border-color: var(--sacig-neon-yellow);
+    color: #fff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+}
+
+.sacig-leaderboard-container .sacig-leaderboard-panel {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .sacig-leaderboard-container .sacig-leaderboard-tab {
+        flex: 1;
+        min-width: 80px;
+        padding: 10px 15px;
+        font-size: 0.85rem;
+    }
+}
+
+/* ==========================================================================
+   v2.1.0 — Login / registration forms (Task 5)
+   ========================================================================== */
+.sacig-login-container {
+    --sacig-neon-cyan: #00ffff;
+    --sacig-neon-magenta: #ff00ff;
+    --sacig-neon-yellow: #ffff00;
+    --sacig-deep-purple: #1a0033;
+    --sacig-dark-blue: #0a0a1f;
+    --sacig-glass-border: rgba(255, 255, 255, 0.1);
+    --sacig-glow-cyan: 0 0 20px var(--sacig-neon-cyan), 0 0 40px var(--sacig-neon-cyan);
+    --sacig-glow-magenta: 0 0 20px var(--sacig-neon-magenta), 0 0 40px var(--sacig-neon-magenta);
+
+    font-family: 'Rajdhani', sans-serif;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.sacig-login-box {
+    background: linear-gradient(135deg, var(--sacig-deep-purple) 0%, var(--sacig-dark-blue) 100%);
+    border: 2px solid var(--sacig-neon-cyan);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: var(--sacig-glow-cyan);
+    backdrop-filter: blur(10px);
+    box-sizing: border-box;
+    color: #fff;
+}
+
+.sacig-login-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.sacig-login-title {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--sacig-neon-cyan);
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.sacig-login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sacig-login-container .sacig-form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.sacig-login-container .sacig-form-group label {
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--sacig-neon-cyan);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.sacig-login-container .sacig-form-group input[type="text"],
+.sacig-login-container .sacig-form-group input[type="email"],
+.sacig-login-container .sacig-form-group input[type="password"] {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--sacig-neon-cyan);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #fff;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Rajdhani', sans-serif;
+}
+
+.sacig-login-container .sacig-form-group input:focus {
+    outline: none;
+    box-shadow: 0 0 10px var(--sacig-neon-cyan);
+}
+
+.sacig-login-button {
+    width: 100%;
+    font-family: 'Orbitron', sans-serif;
+    background: linear-gradient(45deg, var(--sacig-neon-magenta), var(--sacig-neon-cyan));
+    color: #0a0a1f;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    margin-top: 8px;
+}
+
+.sacig-login-button:hover {
+    transform: scale(1.03);
+    box-shadow: var(--sacig-glow-magenta);
+}
+
+.sacig-login-links {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    font-size: 0.85rem;
+}
+
+.sacig-login-links a {
+    color: var(--sacig-neon-cyan);
+    text-decoration: none;
+}
+
+.sacig-login-links a:hover {
+    text-decoration: underline;
+}
+
+.sacig-login-error {
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+    background: rgba(255, 0, 0, 0.1);
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.sacig-login-success {
+    border: 1px solid var(--sacig-neon-cyan);
+    color: var(--sacig-neon-cyan);
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+}
+
+.sacig-logout-link {
+    color: var(--sacig-neon-cyan);
+}
+
+@media (max-width: 480px) {
+    .sacig-login-links {
+        flex-direction: column;
+    }
+}
+
+/* ==========================================================================
+   v2.1.0 — AI popup: phased media + Skip button (Task 11e)
+   ========================================================================== */
+/* The popup overlay is appended to <body>, outside .sacig-container, so it
+   needs its own theme variables for the existing box/media styles to resolve. */
+.sacig-ai-popup-overlay {
+    --sacig-neon-cyan: #00ffff;
+    --sacig-neon-magenta: #ff00ff;
+    --sacig-neon-yellow: #ffff00;
+    --sacig-deep-purple: #1a0033;
+    --sacig-dark-blue: #0a0a1f;
+    --sacig-glow-cyan: 0 0 20px var(--sacig-neon-cyan), 0 0 40px var(--sacig-neon-cyan);
+    --sacig-glow-magenta: 0 0 20px var(--sacig-neon-magenta), 0 0 40px var(--sacig-neon-magenta);
+}
+
+.sacig-ai-popup-media-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 90vw;
+    max-height: 70vh;
+}
+
+.sacig-ai-popup-video,
+.sacig-ai-popup-image {
+    max-width: 90vw;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+    border-radius: 8px;
+    border: 2px solid var(--sacig-neon-magenta);
+    box-shadow: var(--sacig-glow-magenta);
+    object-fit: contain;
+}
+
+.sacig-ai-popup-skip {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    font-family: 'Orbitron', sans-serif;
+    background: var(--sacig-neon-cyan);
+    color: var(--sacig-dark-blue);
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    z-index: 1;
+}
+
+.sacig-ai-popup-skip:hover {
+    filter: brightness(1.2);
+    transform: scale(1.05);
+}
+
+/* ==========================================================================
+   v2.1.0 — Difficulty / self-reset confirmation modals (Task 12)
+   .sacig-modal / .sacig-modal-content / .sacig-close-modal already exist.
+   ========================================================================== */
+.sacig-container .sacig-reset-modal-content,
+.sacig-container .sacig-difficulty-modal-content {
+    max-width: 500px;
+    text-align: center;
+}
+
+.sacig-container .sacig-reset-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.sacig-container .sacig-reset-list {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: left;
+}
+
+.sacig-container .sacig-reset-list h4 {
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--sacig-neon-cyan);
+}
+
+.sacig-container .sacig-reset-list ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.sacig-container .sacig-reset-list ul li {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    margin: 5px 0;
+}
+
+.sacig-container .sacig-difficulty-change-info {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--sacig-glass-border);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    color: var(--sacig-neon-cyan);
+}
+
+.sacig-container .sacig-modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.sacig-container .sacig-modal-content .sacig-close-modal {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--sacig-neon-cyan);
+    color: var(--sacig-neon-cyan);
+}
+
+@media (max-width: 480px) {
+    .sacig-container .sacig-reset-details {
+        grid-template-columns: 1fr;
+    }
+}
