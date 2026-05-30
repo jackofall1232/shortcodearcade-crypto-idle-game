@@ -74,8 +74,42 @@ class SACIG_Cloud_Save {
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'get_leaderboard' ),
 				'permission_callback' => '__return_true',
+				'args'                => array(
+					'difficulty' => array(
+						'required' => false,
+						'type'     => 'string',
+					),
+				),
 			)
 		);
+
+		// Change difficulty endpoint.
+		register_rest_route(
+			'sacig/v1',
+			'/change-difficulty',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( $this, 'change_difficulty' ),
+				'permission_callback' => array( $this, 'check_cloud_save_permission' ),
+				'args'                => array(
+					'difficulty' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'validate_callback' => array( $this, 'validate_difficulty' ),
+					),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Validate a difficulty value.
+	 *
+	 * @param mixed $value Value to validate.
+	 * @return bool
+	 */
+	public function validate_difficulty( $value ) {
+		return in_array( $value, array( 'easy', 'medium', 'hard' ), true );
 	}
 
 	/**
@@ -233,6 +267,24 @@ class SACIG_Cloud_Save {
 			(int) $save_data['prestigeLevel']
 		);
 
+		// Resolve the player's difficulty (whitelisted) and its best-score column.
+		// When player-selectable difficulty is disabled, the admin's global
+		// difficulty is authoritative — the client value is ignored so it cannot
+		// be spoofed to populate the wrong per-difficulty leaderboard column.
+		if ( (bool) get_option( 'sacig_allow_player_difficulty', false ) ) {
+			$difficulty = isset( $save_data['difficulty'] ) ? (string) $save_data['difficulty'] : 'medium';
+		} else {
+			$difficulty = (string) get_option( 'sacig_difficulty', 'medium' );
+		}
+		if ( ! in_array( $difficulty, array( 'easy', 'medium', 'hard' ), true ) ) {
+			$difficulty = 'medium';
+		}
+		$diff_column = 'best_rank_score_' . $difficulty;
+
+		// Persist the authoritative difficulty back into the stored JSON so a
+		// reload reflects the enforced value (not a spoofed client one).
+		$save_data['difficulty'] = $difficulty;
+
 		$table_name = $wpdb->prefix . 'sacig_saves';
 
 		$encoded = wp_json_encode( $save_data );
@@ -244,30 +296,40 @@ class SACIG_Cloud_Save {
 			);
 		}
 
-		// Prepare data for insertion.
-		$data = array(
-			'user_id'            => $user_id,
-			'save_data'          => $encoded,
-			'base_click_power'   => (float) $save_data['clickPower'],
-			'base_passive_income'=> (float) $save_data['passiveIncome'],
-			'prestige_level'     => (int) $save_data['prestigeLevel'],
-			'total_satoshis'     => (float) $save_data['satoshis'],
-			'rank_score'         => (float) $rank_score,
-		);
-
-		$format = array( '%d', '%s', '%f', '%f', '%d', '%f', '%f' );
-
-		// Check if user already has a save.
+		// Check if user already has a save (and read current best scores).
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		// Table name is safely constructed using $wpdb->prefix constant.
-		$existing = $wpdb->get_var(
+		$existing = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT user_id FROM {$table_name} WHERE user_id = %d",
+				"SELECT user_id, best_rank_score, best_rank_score_easy, best_rank_score_medium, best_rank_score_hard FROM {$table_name} WHERE user_id = %d",
 				$user_id
 			)
 		);
 		// phpcs:enable
+
+		// Best scores never decrease.
+		$current_best      = $existing ? (float) $existing->best_rank_score : 0.0;
+		$current_best_diff = ( $existing && isset( $existing->{$diff_column} ) ) ? (float) $existing->{$diff_column} : 0.0;
+		$best_rank_score   = max( $current_best, (float) $rank_score );
+		$best_rank_diff    = max( $current_best_diff, (float) $rank_score );
+
+		// Prepare data for insertion.
+		$data = array(
+			'user_id'             => $user_id,
+			'save_data'           => $encoded,
+			'base_click_power'    => (float) $save_data['clickPower'],
+			'base_passive_income' => (float) $save_data['passiveIncome'],
+			'prestige_level'      => (int) $save_data['prestigeLevel'],
+			'total_satoshis'      => (float) $save_data['satoshis'],
+			'rank_score'          => (float) $rank_score,
+			'best_rank_score'     => (float) $best_rank_score,
+			'difficulty'          => $difficulty,
+			$diff_column          => (float) $best_rank_diff,
+		);
+
+		// Format order matches the $data keys above (the difficulty column is whitelisted).
+		$format = array( '%d', '%s', '%f', '%f', '%d', '%f', '%f', '%f', '%s', '%f' );
 
 		if ( $existing ) {
 			// Update existing save.
@@ -294,9 +356,11 @@ class SACIG_Cloud_Save {
 		}
 
 		return array(
-			'success'    => true,
-			'message'    => 'Game saved successfully.',
-			'rank_score' => (float) $rank_score,
+			'success'         => true,
+			'message'         => 'Game saved successfully.',
+			'rank_score'      => (float) $rank_score,
+			'best_rank_score' => (float) $best_rank_score,
+			'difficulty'      => $difficulty,
 		);
 	}
 
@@ -315,15 +379,15 @@ class SACIG_Cloud_Save {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		// Table name is safely constructed using $wpdb->prefix constant.
-		$save_data = $wpdb->get_var(
+		$row = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT save_data FROM {$table_name} WHERE user_id = %d",
+				"SELECT save_data, difficulty FROM {$table_name} WHERE user_id = %d",
 				$user_id
 			)
 		);
 		// phpcs:enable
 
-		if ( ! $save_data ) {
+		if ( ! $row || ! $row->save_data ) {
 			return array(
 				'success' => false,
 				'message' => 'No saved game found.',
@@ -331,7 +395,7 @@ class SACIG_Cloud_Save {
 			);
 		}
 
-		$decoded_data = json_decode( $save_data, true );
+		$decoded_data = json_decode( $row->save_data, true );
 
 		if ( ! is_array( $decoded_data ) ) {
 			return new WP_Error(
@@ -342,9 +406,10 @@ class SACIG_Cloud_Save {
 		}
 
 		return array(
-			'success' => true,
-			'message' => 'Game loaded successfully.',
-			'data'    => $decoded_data,
+			'success'    => true,
+			'message'    => 'Game loaded successfully.',
+			'data'       => $decoded_data,
+			'difficulty' => isset( $row->difficulty ) ? $row->difficulty : 'medium',
 		);
 	}
 
@@ -379,23 +444,37 @@ class SACIG_Cloud_Save {
 		$table_name  = $wpdb->prefix . 'sacig_saves';
 		$users_table = $wpdb->users;
 
+		// Determine whether to filter by a specific difficulty.
+		// The score column is whitelisted below BEFORE any interpolation, so no
+		// user-supplied value ever reaches the SQL string.
+		$allow_diff   = (bool) get_option( 'sacig_allow_player_difficulty', false );
+		$req_diff     = $request ? $request->get_param( 'difficulty' ) : '';
+		$use_diff     = $allow_diff && in_array( $req_diff, array( 'easy', 'medium', 'hard' ), true );
+		$score_column = 'rank_score';
+		$where_clause = '';
+		if ( $use_diff ) {
+			$score_column = 'best_rank_score_' . $req_diff;
+			$where_clause = "WHERE s.{$score_column} > 0";
+		}
+
 		// Direct query required: leaderboard aggregation with JOIN and ORDER BY on custom table.
 		// No WP_Query or equivalent API supports cross-table aggregation with custom tables.
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-		// Table names are safely constructed using $wpdb->prefix and $wpdb->users constants.
+		// Table names use $wpdb->prefix/$wpdb->users; $score_column is whitelisted above.
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT
 					s.user_id,
 					s.total_satoshis,
 					s.prestige_level,
-					s.rank_score,
+					s.{$score_column} AS rank_score,
 					s.last_updated,
 					u.display_name
 				FROM {$table_name} s
 				LEFT JOIN {$users_table} u ON s.user_id = u.ID
-				ORDER BY s.rank_score DESC
+				{$where_clause}
+				ORDER BY s.{$score_column} DESC
 				LIMIT %d",
 				$limit
 			),
@@ -428,6 +507,123 @@ class SACIG_Cloud_Save {
 		return array(
 			'success'     => true,
 			'leaderboard' => $leaderboard,
+		);
+	}
+
+	/**
+	 * Change the player's difficulty.
+	 *
+	 * Resets the current run while preserving prestige progression and best
+	 * scores (overall and per-difficulty).
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return array|WP_Error
+	 */
+	public function change_difficulty( $request ) {
+		global $wpdb;
+
+		// Per-player difficulty must be enabled.
+		if ( ! (bool) get_option( 'sacig_allow_player_difficulty', false ) ) {
+			return new WP_Error(
+				'difficulty_disabled',
+				'Player-selectable difficulty is not enabled on this site.',
+				array( 'status' => 403 )
+			);
+		}
+
+		$user_id    = get_current_user_id();
+		$difficulty = (string) $request->get_param( 'difficulty' );
+		if ( ! in_array( $difficulty, array( 'easy', 'medium', 'hard' ), true ) ) {
+			return new WP_Error(
+				'invalid_difficulty',
+				'Invalid difficulty value.',
+				array( 'status' => 400 )
+			);
+		}
+
+		$table_name = $wpdb->prefix . 'sacig_saves';
+
+		// Load the existing save to preserve prestige and best scores.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		// Table name is safely constructed using $wpdb->prefix constant.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT save_data, prestige_level, best_rank_score, best_rank_score_easy, best_rank_score_medium, best_rank_score_hard FROM {$table_name} WHERE user_id = %d",
+				$user_id
+			)
+		);
+		// phpcs:enable
+
+		$prestige_level      = $row ? (int) $row->prestige_level : 0;
+		$prestige_multiplier = 1.0;
+		$decoded             = $row ? json_decode( $row->save_data, true ) : array();
+		if ( is_array( $decoded ) && isset( $decoded['prestigeMultiplier'] ) ) {
+			$prestige_multiplier = (float) $decoded['prestigeMultiplier'];
+		}
+
+		// Build a fresh run state, keeping prestige progression.
+		$fresh_save = array(
+			'satoshis'           => 0,
+			'clickPower'         => 1,
+			'passiveIncome'      => 0,
+			'rating'             => ( is_array( $decoded ) && isset( $decoded['rating'] ) ) ? $decoded['rating'] : 0,
+			'prestigeLevel'      => $prestige_level,
+			'prestigeMultiplier' => $prestige_multiplier,
+			'upgrades'           => array(),
+			'difficulty'         => $difficulty,
+		);
+
+		$encoded = wp_json_encode( $fresh_save );
+		if ( false === $encoded ) {
+			return new WP_Error(
+				'encode_failed',
+				'Failed to encode save data.',
+				array( 'status' => 500 )
+			);
+		}
+
+		// Best-score columns are intentionally omitted so they are preserved on update.
+		$data = array(
+			'user_id'             => $user_id,
+			'save_data'           => $encoded,
+			'base_click_power'    => 1,
+			'base_passive_income' => 0,
+			'prestige_level'      => $prestige_level,
+			'total_satoshis'      => 0,
+			'rank_score'          => 0,
+			'difficulty'          => $difficulty,
+		);
+		$format = array( '%d', '%s', '%f', '%f', '%d', '%f', '%f', '%s' );
+
+		if ( $row ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table update
+			$result = $wpdb->update( $table_name, $data, array( 'user_id' => $user_id ), $format, array( '%d' ) );
+		} else {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Custom table insert
+			$result = $wpdb->insert( $table_name, $data, $format );
+		}
+
+		if ( false === $result ) {
+			return new WP_Error(
+				'change_failed',
+				'Failed to change difficulty.',
+				array( 'status' => 500 )
+			);
+		}
+
+		return array(
+			'success'         => true,
+			'difficulty'      => $difficulty,
+			'reset_performed' => true,
+			'preserved'       => array(
+				'prestige_level'         => $prestige_level,
+				'prestige_multiplier'    => $prestige_multiplier,
+				'best_rank_score'        => $row ? (float) $row->best_rank_score : 0.0,
+				'best_rank_score_easy'   => $row ? (float) $row->best_rank_score_easy : 0.0,
+				'best_rank_score_medium' => $row ? (float) $row->best_rank_score_medium : 0.0,
+				'best_rank_score_hard'   => $row ? (float) $row->best_rank_score_hard : 0.0,
+			),
 		);
 	}
 

@@ -4,7 +4,7 @@ Donate link: https://shortcodearcade.com
 Tags: game, idle game, crypto, clicker game, mining game
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -34,8 +34,17 @@ This plugin is self-contained and runs entirely inside WordPress, making it idea
 
 * **Cloud Saves** – Store player progress in the WordPress database (login required)
 * **Leaderboards** – Rank players using prestige-weighted scores
-* **Ad Integration** – Optional ad placement via shortcode attribute
+* **Ad Integration** – Optional ad placement via shortcode attribute or admin Ad Space
 * **REST API** – Public endpoints for leaderboard data
+
+**Gameplay Settings:**
+
+* **Difficulty Level** - Easy (0.6x) / Medium (0.8x) / Hard (1.0x) intensity
+* **Allow Player Difficulty** - Let players choose difficulty (creates per-difficulty leaderboards)
+* **Button Mode** - 1 (standard), 2 (1 real + 1 decoy), 3 (1 real + 2 decoys) anti-bot protection
+* **Movement Trigger** - None / Click / Timer / Both (button position swapping)
+* **Enable Self-Reset** - Let players start a new run keeping prestige and best score
+* **Ad Space** - Optional ad HTML placement within the game
 
 **Shortcodes:**
 
@@ -163,6 +172,18 @@ You must supply your own API key in Settings → AI Storyline.
 6. Admin settings panel  
 
 == Changelog ==
+
+= 2.0.1 =
+* NEW: Difficulty system (Easy/Medium/Hard) with per-difficulty leaderboards
+* NEW: Player-selectable difficulty with separate competitive rankings
+* NEW: Anti-bot button mode (1/2/3 buttons with decoys)
+* NEW: Movement trigger system for button position swapping
+* NEW: Self-reset feature preserving prestige and best scores
+* NEW: Ad Space integration with sanitized HTML support
+* NEW: AI Storyline wired to game frontend — popups now fire for players
+* FIXED: DB schema updated with difficulty and per-difficulty best score columns
+* FIXED: Cloud save now stores and returns player difficulty
+* FIXED: Leaderboard supports per-difficulty filtering
 
 = 2.0.0 =
 * NEW: All features now free — no Pro version required

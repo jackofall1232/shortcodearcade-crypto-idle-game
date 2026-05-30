@@ -123,6 +123,15 @@ class SACIG_Miner_Shortcode {
 
         wp_localize_script('sacig-game-js', 'sacigSettings', $script_data);
 
+        // Gameplay settings (difficulty, anti-bot button mode, self-reset).
+        if ( class_exists( 'SACIG_Admin' ) ) {
+            wp_localize_script(
+                'sacig-game-js',
+                'sacigGameplay',
+                SACIG_Admin::get_gameplay_settings()
+            );
+        }
+
         // AI Storyline data for the optional narrative popups. The nonce ties
         // requests to this site so the paid endpoint cannot be called anonymously.
         wp_localize_script(
@@ -244,11 +253,27 @@ class SACIG_Miner_Shortcode {
                 </button>
             </div>
 
+            <?php
+            // Ad precedence: shortcode attribute first, then admin Ad Space, else placeholder.
+            $admin_ad_enabled = (bool) get_option('sacig_ad_enabled', false);
+            $admin_ad_html    = get_option('sacig_ad_html', '');
+            ?>
             <?php if (!empty($atts['ad_code'])) : ?>
                 <div class="sacig-ad-container">
                     <div class="sacig-ad-label">Advertisement</div>
                     <div class="sacig-ad-content">
                         <?php echo wp_kses_post($atts['ad_code']); ?>
+                    </div>
+                </div>
+            <?php elseif ($admin_ad_enabled && '' !== trim($admin_ad_html)) : ?>
+                <div class="sacig-ad-container">
+                    <div class="sacig-ad-label">Advertisement</div>
+                    <div class="sacig-ad-content">
+                        <?php
+                        // Already sanitized on save by SACIG_Admin::sanitize_ad_html() per the
+                        // saving user's capabilities; output as stored so ad scripts function.
+                        echo $admin_ad_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                        ?>
                     </div>
                 </div>
             <?php else : ?>
@@ -328,12 +353,12 @@ class SACIG_Miner_Shortcode {
                     s.user_id,
                     s.total_satoshis,
                     s.prestige_level,
-                    s.rank_score,
+                    s.best_rank_score AS rank_score,
                     s.last_updated,
                     u.display_name
                 FROM {$table_name} s
                 LEFT JOIN {$users_table} u ON s.user_id = u.ID
-                ORDER BY s.rank_score DESC
+                ORDER BY s.best_rank_score DESC
                 LIMIT %d",
                 $limit
             ),
