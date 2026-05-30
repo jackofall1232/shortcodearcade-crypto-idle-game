@@ -39,6 +39,17 @@ class SACIG_Admin {
     private $ai_storyline;
 
     /**
+     * Difficulty intensity multipliers keyed by difficulty slug.
+     *
+     * @var array
+     */
+    private static $difficulty_map = array(
+        'easy'   => 0.6,
+        'medium' => 0.8,
+        'hard'   => 1.0,
+    );
+
+    /**
      * Constructor
      *
      * @param SACIG_Branding|null     $branding     Shared branding instance.
@@ -52,6 +63,7 @@ class SACIG_Admin {
 
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
+        add_action('admin_init', array($this, 'check_db_version'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         add_action('admin_head', array($this, 'output_menu_color_css'));
     }
@@ -185,6 +197,86 @@ class SACIG_Admin {
             'sacig_main_section'
         );
 
+        // --- Gameplay settings (difficulty & anti-bot) ---
+        register_setting( 'sacig_settings_group', 'sacig_difficulty', array(
+            'type'              => 'string',
+            'default'           => 'medium',
+            'sanitize_callback' => array( $this, 'sanitize_difficulty' ),
+        ) );
+
+        register_setting( 'sacig_settings_group', 'sacig_allow_player_difficulty', array(
+            'type'              => 'boolean',
+            'default'           => false,
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+
+        register_setting( 'sacig_settings_group', 'sacig_button_mode', array(
+            'type'              => 'integer',
+            'default'           => 1,
+            'sanitize_callback' => array( $this, 'sanitize_button_mode' ),
+        ) );
+
+        register_setting( 'sacig_settings_group', 'sacig_movement_trigger', array(
+            'type'              => 'string',
+            'default'           => 'none',
+            'sanitize_callback' => array( $this, 'sanitize_movement_trigger' ),
+        ) );
+
+        register_setting( 'sacig_settings_group', 'sacig_enable_self_reset', array(
+            'type'              => 'boolean',
+            'default'           => true,
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+
+        add_settings_section(
+            'sacig_gameplay_section',
+            __( 'Gameplay Settings', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_gameplay_section_description' ),
+            'shortcodearcade-crypto-idle-game'
+        );
+
+        add_settings_field( 'sacig_difficulty', __( 'Difficulty Level', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_difficulty_field' ), 'shortcodearcade-crypto-idle-game', 'sacig_gameplay_section' );
+
+        add_settings_field( 'sacig_allow_player_difficulty', __( 'Allow Player Difficulty', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_allow_player_difficulty_field' ), 'shortcodearcade-crypto-idle-game', 'sacig_gameplay_section' );
+
+        add_settings_field( 'sacig_button_mode', __( 'Button Mode', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_button_mode_field' ), 'shortcodearcade-crypto-idle-game', 'sacig_gameplay_section' );
+
+        add_settings_field( 'sacig_movement_trigger', __( 'Movement Trigger', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_movement_trigger_field' ), 'shortcodearcade-crypto-idle-game', 'sacig_gameplay_section' );
+
+        add_settings_field( 'sacig_enable_self_reset', __( 'Enable Self-Reset', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_self_reset_field' ), 'shortcodearcade-crypto-idle-game', 'sacig_gameplay_section' );
+
+        // --- Ad space settings ---
+        register_setting( 'sacig_settings_group', 'sacig_ad_enabled', array(
+            'type'              => 'boolean',
+            'default'           => false,
+            'sanitize_callback' => array( $this, 'sanitize_checkbox' ),
+        ) );
+
+        register_setting( 'sacig_settings_group', 'sacig_ad_html', array(
+            'type'              => 'string',
+            'default'           => '',
+            'sanitize_callback' => array( $this, 'sanitize_ad_html' ),
+        ) );
+
+        add_settings_section(
+            'sacig_ad_section',
+            __( 'Ad Space', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_ad_section_description' ),
+            'shortcodearcade-crypto-idle-game'
+        );
+
+        add_settings_field( 'sacig_ad_enabled', __( 'Enable Ad Space', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_ad_enabled_field' ), 'shortcodearcade-crypto-idle-game', 'sacig_ad_section' );
+
+        add_settings_field( 'sacig_ad_html', __( 'Ad HTML', 'shortcodearcade-crypto-idle-game' ),
+            array( $this, 'render_ad_html_field' ), 'shortcodearcade-crypto-idle-game', 'sacig_ad_section',
+            array( 'label_for' => 'sacig_ad_html' ) );
+
         // Branding settings are registered by SACIG_Branding (class-sacig-branding.php).
         // Login page settings are registered by SACIG_Login_Pages (class-sacig-login-pages.php).
         // AI storyline settings are registered by SACIG_AI_Storyline (class-sacig-ai-storyline.php).
@@ -280,6 +372,246 @@ class SACIG_Admin {
             min="5" max="100" step="1">
         <p class="description">Number of top players to display (5-100)</p>
         <?php
+    }
+
+    /**
+     * Sanitize difficulty value.
+     *
+     * @param string $input Raw input.
+     * @return string
+     */
+    public function sanitize_difficulty( $input ) {
+        $allowed = array( 'easy', 'medium', 'hard' );
+        return in_array( $input, $allowed, true ) ? $input : 'medium';
+    }
+
+    /**
+     * Sanitize button mode value (1-3).
+     *
+     * @param mixed $input Raw input.
+     * @return int
+     */
+    public function sanitize_button_mode( $input ) {
+        $value = intval( $input );
+        return max( 1, min( 3, $value ) );
+    }
+
+    /**
+     * Sanitize movement trigger value.
+     *
+     * @param string $input Raw input.
+     * @return string
+     */
+    public function sanitize_movement_trigger( $input ) {
+        $allowed = array( 'none', 'click', 'timer', 'both' );
+        return in_array( $input, $allowed, true ) ? $input : 'none';
+    }
+
+    /**
+     * Sanitize ad HTML, allowing ad-network markup (script/iframe/ins).
+     *
+     * @param string $input Raw HTML.
+     * @return string
+     */
+    public function sanitize_ad_html( $input ) {
+        if ( empty( $input ) ) {
+            return '';
+        }
+
+        $allowed = wp_kses_allowed_html( 'post' );
+
+        $allowed['iframe'] = array(
+            'src'             => true,
+            'width'           => true,
+            'height'          => true,
+            'frameborder'     => true,
+            'scrolling'       => true,
+            'allowfullscreen' => true,
+            'style'           => true,
+            'class'           => true,
+            'id'              => true,
+        );
+
+        $allowed['script'] = array(
+            'src'            => true,
+            'type'           => true,
+            'async'          => true,
+            'defer'          => true,
+            'id'             => true,
+            'crossorigin'    => true,
+            'data-ad-client' => true,
+        );
+
+        $allowed['ins'] = array(
+            'class'                      => true,
+            'style'                      => true,
+            'data-ad-client'             => true,
+            'data-ad-slot'               => true,
+            'data-ad-format'             => true,
+            'data-full-width-responsive' => true,
+        );
+
+        return wp_kses( $input, $allowed );
+    }
+
+    /**
+     * Render the gameplay section description.
+     */
+    public function render_gameplay_section_description() {
+        echo '<p>' . esc_html__( 'Configure anti-bot protection and difficulty settings.', 'shortcodearcade-crypto-idle-game' ) . '</p>';
+    }
+
+    /**
+     * Render the difficulty select field.
+     */
+    public function render_difficulty_field() {
+        $value   = get_option( 'sacig_difficulty', 'medium' );
+        $allow   = (bool) get_option( 'sacig_allow_player_difficulty', false );
+        $options = array(
+            'easy'   => __( 'Easy (0.6x intensity)', 'shortcodearcade-crypto-idle-game' ),
+            'medium' => __( 'Medium (0.8x intensity)', 'shortcodearcade-crypto-idle-game' ),
+            'hard'   => __( 'Hard (1.0x intensity)', 'shortcodearcade-crypto-idle-game' ),
+        );
+        ?>
+        <select name="sacig_difficulty">
+            <?php foreach ( $options as $key => $label ) : ?>
+                <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $value, $key ); ?>><?php echo esc_html( $label ); ?></option>
+            <?php endforeach; ?>
+        </select>
+        <p class="description">
+            <?php
+            echo $allow
+                ? esc_html__( 'Default difficulty for new players.', 'shortcodearcade-crypto-idle-game' )
+                : esc_html__( 'Applies to all players.', 'shortcodearcade-crypto-idle-game' );
+            ?>
+        </p>
+        <?php
+    }
+
+    /**
+     * Render the allow-player-difficulty checkbox.
+     */
+    public function render_allow_player_difficulty_field() {
+        $value = (bool) get_option( 'sacig_allow_player_difficulty', false );
+        $cloud = (bool) get_option( 'sacig_enable_cloud_saves', false );
+        ?>
+        <label>
+            <input type="hidden" name="sacig_allow_player_difficulty" value="0">
+            <input type="checkbox" name="sacig_allow_player_difficulty" value="1" <?php checked( $value, true ); ?>>
+            <?php esc_html_e( 'Players can choose Easy, Medium, or Hard in-game. Creates separate leaderboards per difficulty.', 'shortcodearcade-crypto-idle-game' ); ?>
+        </label>
+        <?php if ( ! $cloud ) : ?>
+            <p class="description"><span class="sacig-warning"><span class="dashicons dashicons-warning"></span> <?php esc_html_e( 'Without cloud saves, difficulty is stored locally only.', 'shortcodearcade-crypto-idle-game' ); ?></span></p>
+        <?php endif; ?>
+        <?php
+    }
+
+    /**
+     * Render the button mode select field.
+     */
+    public function render_button_mode_field() {
+        $value   = (int) get_option( 'sacig_button_mode', 1 );
+        $options = array(
+            1 => __( 'Standard (1 button)', 'shortcodearcade-crypto-idle-game' ),
+            2 => __( '1 real + 1 decoy', 'shortcodearcade-crypto-idle-game' ),
+            3 => __( '1 real + 2 decoys', 'shortcodearcade-crypto-idle-game' ),
+        );
+        ?>
+        <select name="sacig_button_mode">
+            <?php foreach ( $options as $key => $label ) : ?>
+                <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $value, $key ); ?>><?php echo esc_html( $label ); ?></option>
+            <?php endforeach; ?>
+        </select>
+        <p class="description"><?php esc_html_e( 'Anti-bot protection: players must find the real button among decoys.', 'shortcodearcade-crypto-idle-game' ); ?></p>
+        <?php
+    }
+
+    /**
+     * Render the movement trigger select field.
+     */
+    public function render_movement_trigger_field() {
+        $value    = get_option( 'sacig_movement_trigger', 'none' );
+        $disabled = ( 1 === (int) get_option( 'sacig_button_mode', 1 ) );
+        $options  = array(
+            'none'  => __( 'None', 'shortcodearcade-crypto-idle-game' ),
+            'click' => __( 'Click', 'shortcodearcade-crypto-idle-game' ),
+            'timer' => __( 'Timer', 'shortcodearcade-crypto-idle-game' ),
+            'both'  => __( 'Both', 'shortcodearcade-crypto-idle-game' ),
+        );
+        ?>
+        <select name="sacig_movement_trigger" <?php disabled( $disabled ); ?>>
+            <?php foreach ( $options as $key => $label ) : ?>
+                <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $value, $key ); ?>><?php echo esc_html( $label ); ?></option>
+            <?php endforeach; ?>
+        </select>
+        <p class="description"><?php esc_html_e( 'When buttons swap positions. Requires 2+ button mode.', 'shortcodearcade-crypto-idle-game' ); ?></p>
+        <?php
+    }
+
+    /**
+     * Render the self-reset checkbox.
+     */
+    public function render_self_reset_field() {
+        $value = (bool) get_option( 'sacig_enable_self_reset', true );
+        ?>
+        <label>
+            <input type="hidden" name="sacig_enable_self_reset" value="0">
+            <input type="checkbox" name="sacig_enable_self_reset" value="1" <?php checked( $value, true ); ?>>
+            <?php esc_html_e( 'Allow players to reset their run while keeping prestige level and best score.', 'shortcodearcade-crypto-idle-game' ); ?>
+        </label>
+        <?php
+    }
+
+    /**
+     * Render the ad section description.
+     */
+    public function render_ad_section_description() {
+        echo '<p>' . esc_html__( 'Optionally display an ad unit within the game. Ad HTML is shown to all visitors.', 'shortcodearcade-crypto-idle-game' ) . '</p>';
+    }
+
+    /**
+     * Render the ad-enabled checkbox.
+     */
+    public function render_ad_enabled_field() {
+        $value = (bool) get_option( 'sacig_ad_enabled', false );
+        ?>
+        <label>
+            <input type="hidden" name="sacig_ad_enabled" value="0">
+            <input type="checkbox" name="sacig_ad_enabled" value="1" <?php checked( $value, true ); ?>>
+            <?php esc_html_e( 'Show ad HTML within the game shortcode output.', 'shortcodearcade-crypto-idle-game' ); ?>
+        </label>
+        <?php
+    }
+
+    /**
+     * Render the ad HTML textarea.
+     */
+    public function render_ad_html_field() {
+        $value = get_option( 'sacig_ad_html', '' );
+        ?>
+        <textarea id="sacig_ad_html" name="sacig_ad_html" rows="6" class="large-text"><?php echo esc_textarea( $value ); ?></textarea>
+        <p class="description"><?php esc_html_e( 'Paste ad network code (AdSense, etc.). Supports script, iframe, and ins tags.', 'shortcodearcade-crypto-idle-game' ); ?></p>
+        <?php
+    }
+
+    /**
+     * Get gameplay settings for passing to the front-end game.
+     *
+     * @return array
+     */
+    public static function get_gameplay_settings() {
+        $difficulty = get_option( 'sacig_difficulty', 'medium' );
+        $intensity  = isset( self::$difficulty_map[ $difficulty ] )
+            ? self::$difficulty_map[ $difficulty ] : 0.8;
+
+        return array(
+            'difficulty'            => $difficulty,
+            'difficultyIntensity'   => $intensity,
+            'allowPlayerDifficulty' => (bool) get_option( 'sacig_allow_player_difficulty', false ),
+            'buttonMode'            => (int) get_option( 'sacig_button_mode', 1 ),
+            'movementTrigger'       => get_option( 'sacig_movement_trigger', 'none' ),
+            'enableSelfReset'       => (bool) get_option( 'sacig_enable_self_reset', true ),
+        );
     }
 
     /**
@@ -625,14 +957,79 @@ class SACIG_Admin {
             prestige_level int DEFAULT 0,
             total_satoshis decimal(30,6) DEFAULT 0,
             rank_score decimal(30,6) DEFAULT 0,
+            best_rank_score decimal(30,6) DEFAULT 0,
+            best_rank_score_easy decimal(30,6) DEFAULT 0,
+            best_rank_score_medium decimal(30,6) DEFAULT 0,
+            best_rank_score_hard decimal(30,6) DEFAULT 0,
+            difficulty varchar(10) DEFAULT 'medium',
             last_updated datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY  (user_id),
-            KEY rank_score (rank_score DESC),
+            KEY rank_score (rank_score),
+            KEY best_rank_score (best_rank_score),
+            KEY difficulty (difficulty),
             KEY last_updated (last_updated)
         ) $charset_collate;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
+    }
+
+    /**
+     * Migrate the saves table to add new columns on sites with the old schema.
+     *
+     * Uses targeted ALTER TABLE statements because MySQL does not support
+     * "ADD COLUMN IF NOT EXISTS"; missing columns are detected first.
+     */
+    private function maybe_migrate_db() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'sacig_saves';
+
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        // Table name is safely constructed using $wpdb->prefix; only this plugin's table is touched.
+        $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
+        if ( $exists !== $table_name ) {
+            return;
+        }
+
+        $existing_columns = $wpdb->get_col( "DESC {$table_name}", 0 );
+        if ( ! is_array( $existing_columns ) ) {
+            return;
+        }
+
+        // Column name => column definition. Both are hard-coded constants (no user input).
+        $new_columns = array(
+            'best_rank_score'        => 'decimal(30,6) DEFAULT 0',
+            'best_rank_score_easy'   => 'decimal(30,6) DEFAULT 0',
+            'best_rank_score_medium' => 'decimal(30,6) DEFAULT 0',
+            'best_rank_score_hard'   => 'decimal(30,6) DEFAULT 0',
+            'difficulty'             => "varchar(10) DEFAULT 'medium'",
+        );
+
+        foreach ( $new_columns as $column => $definition ) {
+            if ( ! in_array( $column, $existing_columns, true ) ) {
+                $wpdb->query( "ALTER TABLE {$table_name} ADD COLUMN {$column} {$definition}" );
+            }
+        }
+        // phpcs:enable
+    }
+
+    /**
+     * Check the stored DB version and run schema creation/migration when it changes.
+     */
+    public function check_db_version() {
+        $installed = get_option( 'sacig_db_version' );
+        if ( SACIG_VERSION === $installed ) {
+            return;
+        }
+
+        // Create the table when cloud saves are in use, then migrate any old schema.
+        if ( get_option( 'sacig_enable_cloud_saves', false ) ) {
+            $this->maybe_create_table();
+        }
+        $this->maybe_migrate_db();
+
+        update_option( 'sacig_db_version', SACIG_VERSION );
     }
 
     /**
