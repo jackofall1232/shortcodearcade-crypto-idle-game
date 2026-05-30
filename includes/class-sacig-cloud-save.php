@@ -467,8 +467,7 @@ class SACIG_Cloud_Save {
 		}
 
 		// No difficulty filter — rank by all-time best score.
-		// $diff_col is whitelisted against array('easy','medium','hard') before
-		// interpolation. $table_name uses $wpdb->prefix — a trusted constant.
+		// $table_name uses $wpdb->prefix — a trusted constant.
 		// SQL identifiers cannot use placeholder preparation.
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching
