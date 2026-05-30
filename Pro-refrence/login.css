@@ -1,0 +1,370 @@
+/**
+ * Crypto Miner Tycoon - Login Page Styles
+ * Version: 1.0.0
+ */
+
+/* Login Container */
+.cmt-login-container {
+    --cmt-neon-cyan: #00ffff;
+    --cmt-neon-magenta: #ff00ff;
+    --cmt-neon-yellow: #ffff00;
+    --cmt-deep-purple: #1a0033;
+    --cmt-dark-blue: #0a0a1f;
+    --cmt-glass-bg: rgba(255, 255, 255, 0.05);
+    --cmt-glass-border: rgba(255, 255, 255, 0.1);
+    --cmt-glow-cyan: 0 0 20px var(--cmt-neon-cyan), 0 0 40px var(--cmt-neon-cyan);
+    --cmt-glow-magenta: 0 0 20px var(--cmt-neon-magenta), 0 0 40px var(--cmt-neon-magenta);
+    
+    font-family: 'Rajdhani', sans-serif;
+    background: linear-gradient(135deg, var(--cmt-deep-purple) 0%, var(--cmt-dark-blue) 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animated Background Grid */
+.cmt-login-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: cmt-gridMove 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+@keyframes cmt-gridMove {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(50px, 50px); }
+}
+
+/* Login Box */
+.cmt-login-box {
+    position: relative;
+    z-index: 1;
+    background: var(--cmt-glass-bg);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--cmt-glass-border);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 450px;
+    width: 100%;
+    box-shadow: var(--cmt-glow-cyan);
+}
+
+/* Login Header */
+.cmt-login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.cmt-login-logo {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    display: block;
+    animation: cmt-float 3s ease-in-out infinite;
+    filter: drop-shadow(var(--cmt-glow-cyan));
+}
+
+.cmt-login-logo-default {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    animation: cmt-float 3s ease-in-out infinite;
+}
+
+.cmt-login-logo-default svg {
+    width: 100%;
+    height: 100%;
+}
+
+@keyframes cmt-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.cmt-login-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--cmt-neon-cyan);
+    margin: 0 0 10px;
+    text-shadow: var(--cmt-glow-cyan);
+}
+
+.cmt-login-subtitle {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+/* Messages */
+.cmt-login-error,
+.cmt-login-success {
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cmt-login-error {
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px solid rgba(255, 0, 0, 0.3);
+    color: #ff6b6b;
+}
+
+.cmt-login-success {
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    color: #51cf66;
+}
+
+.cmt-error-icon,
+.cmt-success-icon {
+    font-size: 1.5rem;
+}
+
+.cmt-login-error p,
+.cmt-login-success p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Form */
+.cmt-login-form {
+    margin-top: 20px;
+}
+
+.cmt-form-group {
+    margin-bottom: 20px;
+}
+
+.cmt-form-group label {
+    display: block;
+    color: var(--cmt-neon-cyan);
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.cmt-form-group input[type="text"],
+.cmt-form-group input[type="email"],
+.cmt-form-group input[type="password"] {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--cmt-glass-border);
+    border-radius: 8px;
+    color: #fff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.cmt-form-group input:focus {
+    outline: none;
+    border-color: var(--cmt-neon-cyan);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.cmt-field-help {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Form Row */
+.cmt-form-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* Checkbox */
+.cmt-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
+.cmt-checkbox-label input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.cmt-checkbox-label a {
+    color: var(--cmt-neon-cyan);
+    text-decoration: none;
+}
+
+.cmt-checkbox-label a:hover {
+    text-decoration: underline;
+}
+
+/* Links */
+.cmt-forgot-link,
+.cmt-register-link {
+    color: var(--cmt-neon-magenta);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+
+.cmt-forgot-link:hover,
+.cmt-register-link:hover {
+    color: var(--cmt-neon-cyan);
+    text-shadow: var(--cmt-glow-cyan);
+}
+
+/* Buttons */
+.cmt-login-button {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(45deg, var(--cmt-neon-cyan), var(--cmt-neon-magenta));
+    border: 2px solid var(--cmt-neon-yellow);
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: var(--cmt-glow-magenta);
+    position: relative;
+}
+
+.cmt-login-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px var(--cmt-neon-magenta), 0 0 60px var(--cmt-neon-magenta);
+}
+
+.cmt-login-button:active {
+    transform: translateY(0);
+}
+
+.cmt-login-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.cmt-button-loader {
+    animation: cmt-spin 1s linear infinite;
+}
+
+@keyframes cmt-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Footer */
+.cmt-login-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--cmt-glass-border);
+}
+
+.cmt-login-footer p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+/* Logged In Actions */
+.cmt-logged-in-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.cmt-logout-button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--cmt-glass-border);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+    text-decoration: none;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.cmt-logout-button:hover {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: rgba(255, 0, 0, 0.5);
+    color: #fff;
+}
+
+.cmt-logout-link {
+    color: var(--cmt-neon-magenta);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.cmt-logout-link:hover {
+    color: var(--cmt-neon-cyan);
+    text-shadow: var(--cmt-glow-cyan);
+}
+
+/* Notice */
+.cmt-notice {
+    padding: 20px;
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 10px;
+    color: #ffc107;
+    text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cmt-login-box {
+        padding: 30px 20px;
+    }
+    
+    .cmt-login-title {
+        font-size: 1.5rem;
+    }
+    
+    .cmt-login-logo,
+    .cmt-login-logo-default {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .cmt-form-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    /* Already dark by default */
+}
