@@ -117,34 +117,43 @@ class SACIG_Miner_Shortcode {
             ? SACIG_Branding::get_branding_settings()['upgrade_names']
             : array();
 
+        // UI labels: an admin override (Branding → UI Labels) wins over the default.
+        $label_keys = array(
+            'perClick'         => array( 'option' => 'sacig_label_per_click',             'default' => __( 'Per Click', 'shortcodearcade-crypto-idle-game' ) ),
+            'perSecond'        => array( 'option' => 'sacig_label_per_second',            'default' => __( 'Per Second', 'shortcodearcade-crypto-idle-game' ) ),
+            'minerRating'      => array( 'option' => 'sacig_label_miner_rating',          'default' => __( 'Miner Rating', 'shortcodearcade-crypto-idle-game' ) ),
+            'minersActive'     => array( 'option' => 'sacig_label_miners_active',         'default' => __( 'Miners Active', 'shortcodearcade-crypto-idle-game' ) ),
+            'minersStopped'    => array( 'option' => 'sacig_label_miners_stopped',        'default' => __( 'Miners Stopped', 'shortcodearcade-crypto-idle-game' ) ),
+            'minersRestart'    => array( 'option' => 'sacig_label_miners_restart',        'default' => __( 'Restart', 'shortcodearcade-crypto-idle-game' ) ),
+            'hardFork'         => array( 'option' => 'sacig_label_hard_fork',             'default' => __( 'Hard Fork', 'shortcodearcade-crypto-idle-game' ) ),
+            'hardForkDesc'     => array( 'option' => 'sacig_label_hard_fork_description', 'default' => __( 'Reset with permanent +10% bonus to all production', 'shortcodearcade-crypto-idle-game' ) ),
+            'chaosLevel'       => array( 'option' => 'sacig_label_chaos_level',           'default' => __( 'Chaos Level', 'shortcodearcade-crypto-idle-game' ) ),
+            'difficultyLabel'  => array( 'option' => 'sacig_label_difficulty',            'default' => __( 'Difficulty', 'shortcodearcade-crypto-idle-game' ) ),
+            'difficultyEasy'   => array( 'option' => 'sacig_label_difficulty_easy',       'default' => __( 'Easy', 'shortcodearcade-crypto-idle-game' ) ),
+            'difficultyMedium' => array( 'option' => 'sacig_label_difficulty_medium',     'default' => __( 'Medium', 'shortcodearcade-crypto-idle-game' ) ),
+            'difficultyHard'   => array( 'option' => 'sacig_label_difficulty_hard',       'default' => __( 'Hard', 'shortcodearcade-crypto-idle-game' ) ),
+            'findCoinPrompt'   => array( 'option' => 'sacig_label_find_coin_prompt',      'default' => __( 'Find the brighter coin to mine!', 'shortcodearcade-crypto-idle-game' ) ),
+            'wrongButton'      => array( 'option' => 'sacig_label_wrong_button',          'default' => __( 'Wrong button!', 'shortcodearcade-crypto-idle-game' ) ),
+            'leaderboardTitle' => array( 'option' => 'sacig_label_leaderboard_title',     'default' => __( 'Top Players', 'shortcodearcade-crypto-idle-game' ) ),
+            'prestigeColumn'   => array( 'option' => 'sacig_label_prestige_column',       'default' => __( 'Prestige', 'shortcodearcade-crypto-idle-game' ) ),
+            'bestScoreColumn'  => array( 'option' => 'sacig_label_best_score_column',     'default' => __( 'Best Score', 'shortcodearcade-crypto-idle-game' ) ),
+        );
+        $labels = array();
+        foreach ( $label_keys as $js_key => $cfg ) {
+            $custom            = get_option( $cfg['option'], '' );
+            $labels[ $js_key ] = ( '' !== $custom && null !== $custom ) ? $custom : $cfg['default'];
+        }
+
         $script_data = array(
             'cloudSavesEnabled' => $cloud_saves_enabled,
             'isUserLoggedIn' => is_user_logged_in(),
             'restUrl' => rest_url('sacig/v1/'),
             'nonce' => wp_create_nonce('wp_rest'),
             'userId' => get_current_user_id(),
-            'currencyName' => get_option('sacig_currency_name') ?: 'Satoshis',
-            'upgradeNames' => $upgrade_names,
-            'labels' => array(
-                'perClick'         => __( 'Per Click', 'shortcodearcade-crypto-idle-game' ),
-                'perSecond'        => __( 'Per Second', 'shortcodearcade-crypto-idle-game' ),
-                'minerRating'      => __( 'Miner Rating', 'shortcodearcade-crypto-idle-game' ),
-                'minersActive'     => __( 'Miners Active', 'shortcodearcade-crypto-idle-game' ),
-                'minersStopped'    => __( 'Miners Stopped', 'shortcodearcade-crypto-idle-game' ),
-                'minersRestart'    => __( 'Restart', 'shortcodearcade-crypto-idle-game' ),
-                'hardFork'         => __( 'Hard Fork', 'shortcodearcade-crypto-idle-game' ),
-                'hardForkDesc'     => __( 'Reset with permanent +10% bonus to all production', 'shortcodearcade-crypto-idle-game' ),
-                'chaosLevel'       => __( 'Chaos Level', 'shortcodearcade-crypto-idle-game' ),
-                'difficultyLabel'  => __( 'Difficulty', 'shortcodearcade-crypto-idle-game' ),
-                'difficultyEasy'   => __( 'Easy', 'shortcodearcade-crypto-idle-game' ),
-                'difficultyMedium' => __( 'Medium', 'shortcodearcade-crypto-idle-game' ),
-                'difficultyHard'   => __( 'Hard', 'shortcodearcade-crypto-idle-game' ),
-                'findCoinPrompt'   => __( 'Find the brighter coin to mine!', 'shortcodearcade-crypto-idle-game' ),
-                'wrongButton'      => __( 'Wrong button!', 'shortcodearcade-crypto-idle-game' ),
-                'leaderboardTitle' => __( 'Top Players', 'shortcodearcade-crypto-idle-game' ),
-                'prestigeColumn'   => __( 'Prestige', 'shortcodearcade-crypto-idle-game' ),
-                'bestScoreColumn'  => __( 'Best Score', 'shortcodearcade-crypto-idle-game' ),
-            ),
+            'currencyName'   => get_option('sacig_currency_name') ?: 'Satoshis',
+            'currencySymbol' => get_option('sacig_currency_symbol', '&#x20BF;') ?: '&#x20BF;',
+            'upgradeNames'   => $upgrade_names,
+            'labels'         => $labels,
         );
 
         wp_localize_script('sacig-game-js', 'sacigSettings', $script_data);
@@ -172,6 +181,18 @@ class SACIG_Miner_Shortcode {
                     'level5'  => get_option('sacig_ai_media_prestige_5', ''),
                     'level10' => get_option('sacig_ai_media_prestige_10', ''),
                 ),
+                'upgradeMedia' => array(
+                    'betterClicker'   => get_option('sacig_ai_media_upgrade_betterClicker', ''),
+                    'cpuMiner'        => get_option('sacig_ai_media_upgrade_cpuMiner', ''),
+                    'powerfulClicker' => get_option('sacig_ai_media_upgrade_powerfulClicker', ''),
+                    'gpuRig'          => get_option('sacig_ai_media_upgrade_gpuRig', ''),
+                    'megaClicker'     => get_option('sacig_ai_media_upgrade_megaClicker', ''),
+                    'asicMiner'       => get_option('sacig_ai_media_upgrade_asicMiner', ''),
+                    'ultraClicker'    => get_option('sacig_ai_media_upgrade_ultraClicker', ''),
+                    'miningFarm'      => get_option('sacig_ai_media_upgrade_miningFarm', ''),
+                    'godClicker'      => get_option('sacig_ai_media_upgrade_godClicker', ''),
+                    'datacenter'      => get_option('sacig_ai_media_upgrade_datacenter', ''),
+                ),
             )
         );
     }
@@ -198,6 +219,15 @@ class SACIG_Miner_Shortcode {
         $currency_name = get_option('sacig_currency_name') ?: 'Satoshis';
         $coin_image    = get_option('sacig_coin_image');
         $footer_text   = get_option('sacig_footer_text');
+
+        // Substitute {year} and {title} tokens advertised in the Branding admin.
+        if ( $footer_text ) {
+            $footer_text = str_replace(
+                array( '{year}', '{title}' ),
+                array( gmdate( 'Y' ), $game_title ),
+                $footer_text
+            );
+        }
 
         // Start output buffering
         ob_start();
@@ -241,6 +271,7 @@ class SACIG_Miner_Shortcode {
                         </div>
                     </div>
 
+                    <div class="sacig-click-area" id="sacig-clickArea" data-button-mode="<?php echo esc_attr( (int) get_option( 'sacig_button_mode', 1 ) ); ?>">
                     <div class="sacig-mine-button" id="sacig-mineButton" onclick="sacigMine()">
                         <?php if ($coin_image): ?>
                         <img src="<?php echo esc_url($coin_image); ?>" alt="<?php echo esc_attr($currency_name); ?>" class="sacig-coin-image">
@@ -260,6 +291,7 @@ class SACIG_Miner_Shortcode {
                                   fill="none" stroke="url(#sacig-coinGrad)" stroke-width="4" stroke-linecap="round"/>
                         </svg>
                         <?php endif; ?>
+                    </div>
                     </div>
                 </div>
 
@@ -323,6 +355,48 @@ class SACIG_Miner_Shortcode {
                     <?php echo esc_html($game_title); ?> © <?php echo esc_html(gmdate('Y')); ?> | Game auto-saves every 10 seconds
                 <?php endif; ?>
             </footer>
+
+            <!-- Difficulty change confirmation modal -->
+            <div class="sacig-modal" id="sacig-difficultyModal" style="display:none;">
+                <div class="sacig-modal-content sacig-difficulty-modal-content">
+                    <h2>&#x1F3AE; <?php esc_html_e( 'Change Difficulty?', 'shortcodearcade-crypto-idle-game' ); ?></h2>
+                    <p><?php esc_html_e( 'Changing difficulty', 'shortcodearcade-crypto-idle-game' ); ?> <strong><?php esc_html_e( 'resets your current run', 'shortcodearcade-crypto-idle-game' ); ?></strong> <?php esc_html_e( 'but keeps your prestige level and best scores.', 'shortcodearcade-crypto-idle-game' ); ?></p>
+                    <div class="sacig-difficulty-change-info" id="sacig-difficultyChangeInfo"></div>
+                    <div class="sacig-modal-buttons">
+                        <button type="button" class="sacig-prestige-button" id="sacig-confirmDifficultyBtn"><?php esc_html_e( 'Confirm Change', 'shortcodearcade-crypto-idle-game' ); ?></button>
+                        <button type="button" class="sacig-close-modal" onclick="document.getElementById('sacig-difficultyModal').style.display='none';"><?php esc_html_e( 'Cancel', 'shortcodearcade-crypto-idle-game' ); ?></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Self-reset confirmation modal -->
+            <div class="sacig-modal" id="sacig-resetModal" style="display:none;">
+                <div class="sacig-modal-content sacig-reset-modal-content">
+                    <h2>&#x1F504; <?php esc_html_e( 'Start New Run?', 'shortcodearcade-crypto-idle-game' ); ?></h2>
+                    <p><?php esc_html_e( 'This will reset your current progress but preserve:', 'shortcodearcade-crypto-idle-game' ); ?></p>
+                    <div class="sacig-reset-details">
+                        <div class="sacig-reset-list">
+                            <h4>&#x2705; <?php esc_html_e( 'Preserved:', 'shortcodearcade-crypto-idle-game' ); ?></h4>
+                            <ul>
+                                <li><?php esc_html_e( 'Prestige Level & Multiplier', 'shortcodearcade-crypto-idle-game' ); ?></li>
+                                <li><?php esc_html_e( 'Best Leaderboard Score', 'shortcodearcade-crypto-idle-game' ); ?></li>
+                            </ul>
+                        </div>
+                        <div class="sacig-reset-list">
+                            <h4>&#x274C; <?php esc_html_e( 'Reset:', 'shortcodearcade-crypto-idle-game' ); ?></h4>
+                            <ul>
+                                <li><?php echo esc_html( ucfirst( strtolower( $currency_name ) ) ); ?></li>
+                                <li><?php esc_html_e( 'All Upgrades', 'shortcodearcade-crypto-idle-game' ); ?></li>
+                                <li><?php esc_html_e( 'Miner Rating', 'shortcodearcade-crypto-idle-game' ); ?></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="sacig-modal-buttons">
+                        <button type="button" class="sacig-prestige-button" id="sacig-confirmResetBtn"><?php esc_html_e( 'Start New Run', 'shortcodearcade-crypto-idle-game' ); ?></button>
+                        <button type="button" class="sacig-close-modal" onclick="document.getElementById('sacig-resetModal').style.display='none';"><?php esc_html_e( 'Cancel', 'shortcodearcade-crypto-idle-game' ); ?></button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="sacig-save-indicator" id="sacig-saveIndicator">Game Saved</div>

@@ -480,6 +480,23 @@ class SACIG_AI_Storyline {
 				'sanitize_callback' => 'esc_url_raw',
 			)
 		);
+
+		// Per-upgrade media URLs (one per upgrade tier, matching the JS upgrade IDs).
+		$upgrade_media_ids = array(
+			'betterClicker', 'cpuMiner', 'powerfulClicker', 'gpuRig', 'megaClicker',
+			'asicMiner', 'ultraClicker', 'miningFarm', 'godClicker', 'datacenter',
+		);
+		foreach ( $upgrade_media_ids as $uid ) {
+			register_setting(
+				'sacig_ai_group',
+				'sacig_ai_media_upgrade_' . $uid,
+				array(
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'esc_url_raw',
+				)
+			);
+		}
 	}
 
 	/**
@@ -592,6 +609,38 @@ class SACIG_AI_Storyline {
 										<p class="description"><?php esc_html_e( 'Leave empty to use the general prestige media URL.', 'shortcodearcade-crypto-idle-game' ); ?></p>
 									</td>
 								</tr>
+							</table>
+						</div>
+
+						<div class="sacig-arcade-card">
+							<h2><?php esc_html_e( 'Upgrade Media', 'shortcodearcade-crypto-idle-game' ); ?></h2>
+							<p class="description"><?php esc_html_e( 'Optional image or MP4 URL shown before the AI popup for each upgrade tier. Leave empty to skip media for that upgrade.', 'shortcodearcade-crypto-idle-game' ); ?></p>
+							<table class="form-table" role="presentation">
+								<?php
+								$sacig_upgrade_media = array(
+									'betterClicker'   => __( 'Better Pickaxe', 'shortcodearcade-crypto-idle-game' ),
+									'cpuMiner'        => __( 'CPU Miner', 'shortcodearcade-crypto-idle-game' ),
+									'powerfulClicker' => __( 'Diamond Pickaxe', 'shortcodearcade-crypto-idle-game' ),
+									'gpuRig'          => __( 'GPU Mining Rig', 'shortcodearcade-crypto-idle-game' ),
+									'megaClicker'     => __( 'Quantum Pickaxe', 'shortcodearcade-crypto-idle-game' ),
+									'asicMiner'       => __( 'ASIC Miner', 'shortcodearcade-crypto-idle-game' ),
+									'ultraClicker'    => __( 'Neutron Star Drill', 'shortcodearcade-crypto-idle-game' ),
+									'miningFarm'      => __( 'Mining Farm', 'shortcodearcade-crypto-idle-game' ),
+									'godClicker'      => __( 'Black Hole Extractor', 'shortcodearcade-crypto-idle-game' ),
+									'datacenter'      => __( 'Data Center', 'shortcodearcade-crypto-idle-game' ),
+								);
+								foreach ( $sacig_upgrade_media as $sacig_uid => $sacig_uname ) :
+									$sacig_opt = 'sacig_ai_media_upgrade_' . $sacig_uid;
+									$sacig_val = get_option( $sacig_opt, '' );
+									?>
+									<tr>
+										<th scope="row"><label for="<?php echo esc_attr( $sacig_opt ); ?>"><?php echo esc_html( $sacig_uname ); ?></label></th>
+										<td>
+											<input type="url" id="<?php echo esc_attr( $sacig_opt ); ?>" name="<?php echo esc_attr( $sacig_opt ); ?>" class="regular-text" value="<?php echo esc_url( $sacig_val ); ?>" placeholder="https://example.com/clip.mp4">
+											<p class="description"><?php esc_html_e( 'Image or MP4 URL shown before the AI popup for this upgrade. Leave empty to skip.', 'shortcodearcade-crypto-idle-game' ); ?></p>
+										</td>
+									</tr>
+								<?php endforeach; ?>
 							</table>
 						</div>
 

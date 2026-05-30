@@ -1,6 +1,6 @@
 /**
  * Shortcode Arcade Crypto Idle Game - Game Logic
- * Version: 2.0.2
+ * Version: 2.1.0
  *
  * Public window.* globals (intentional for gameplay):
  * - window.sacigMine() - Mining click handler
@@ -51,6 +51,16 @@
 	// Branding (passed from WordPress). Falls back to the default currency name.
 	const sacigCurrency = (typeof sacigSettings !== 'undefined' && sacigSettings.currencyName) ? sacigSettings.currencyName : 'Satoshis';
 	const sacigCurrencyLc = sacigCurrency.toLowerCase();
+
+	// Currency symbol from branding (may arrive as an HTML entity, e.g. &#x20BF;).
+	// Decode once so it can be rendered with textContent safely.
+	const sacigCurrencySymbol = (function () {
+		const raw = (typeof sacigSettings !== 'undefined' && sacigSettings.currencySymbol)
+			? sacigSettings.currencySymbol : '₿';
+		const ta = document.createElement('textarea');
+		ta.innerHTML = raw;
+		return ta.value || '₿';
+	})();
 
 	// Custom upgrade names from branding settings. Index matches upgradeDefinitions
 	// order; an empty string means "use the hardcoded default for that tier".
@@ -408,10 +418,10 @@
 		updateBestScores();
 		updateUI();
 
-		// Movement trigger: swap button positions after a real mine click.
+		// Movement trigger: reposition buttons after a real mine click.
 		if (buttonSystem.mode >= 2 &&
 			(buttonSystem.movementTrigger === 'click' || buttonSystem.movementTrigger === 'both')) {
-			swapButtonPositions();
+			randomizeButtonPositions();
 		}
 	};
 
@@ -525,7 +535,7 @@
 		const passiveIncomeEl = document.getElementById('sacig-passiveIncome');
 		const ratingEl = document.getElementById('sacig-rating');
 
-		if (satoshisEl) satoshisEl.textContent = formatNumber(gameState.satoshis);
+		if (satoshisEl) satoshisEl.textContent = sacigCurrencySymbol + ' ' + formatNumber(gameState.satoshis);
 		if (clickPowerEl) clickPowerEl.textContent = formatNumber(effectiveClickPower);
 		if (passiveIncomeEl) passiveIncomeEl.textContent = formatNumber(effectivePassiveIncome);
 		if (ratingEl) ratingEl.textContent = Math.floor(gameState.rating);
@@ -694,15 +704,18 @@
 		}
 
 		// Passive miners keep running offline only until the inactivity timeout
-		// (48h from the last activity). Offline earnings therefore end at whichever
-		// comes first: now, or the moment that timeout would have fired.
-		const timeoutAt   = (gameState.lastActiveTime || now) + MINER_TIMEOUT_MS;
-		const timedOut    = now >= timeoutAt;
-		const offlineEnd  = Math.min(now, timeoutAt);
+		// (48h). Offline earnings are capped at the MINER_TIMEOUT_MS window; if the
+		// player was away longer, the miners stop and earnings are capped.
+		const msAway = Math.max(0, now - lastSaveTime);
+		let secondsAway;
+		let timedOut = false;
 
-		// Seconds the miners actually ran offline (since the last save), clamped to
-		// the 24h offline cap.
-		const secondsAway = Math.min(Math.max(0, (offlineEnd - lastSaveTime) / 1000), 86400);
+		if (msAway >= MINER_TIMEOUT_MS) {
+			secondsAway = MINER_TIMEOUT_MS / 1000;
+			timedOut    = true;
+		} else {
+			secondsAway = msAway / 1000;
+		}
 
 		// Only calculate if the miners ran offline for more than 60 seconds.
 		if (secondsAway >= 60) {
@@ -931,7 +944,11 @@
 			markStorylineSeen(upgradeId);
 		}
 
-		triggerAIStoryline(eventType, upgradeId, upgradeName, prestigeLevel);
+		const mediaUrl = (eventType === 'prestige')
+			? getPrestigeMedia(prestigeLevel)
+			: getUpgradeMedia(upgradeId);
+
+		triggerAIStoryline(eventType, upgradeId, upgradeName, prestigeLevel, mediaUrl);
 	}
 
 	/**
@@ -951,15 +968,32 @@
 	}
 
 	/**
+	 * Resolve the per-upgrade media URL configured by the admin.
+	 *
+	 * @param {string} upgradeId Upgrade definition id.
+	 * @return {string} Media URL or empty string.
+	 */
+	function getUpgradeMedia(upgradeId) {
+		if (typeof sacigAI === 'undefined' || !sacigAI.upgradeMedia) {
+			return '';
+		}
+		return sacigAI.upgradeMedia[upgradeId] || '';
+	}
+
+	/**
 	 * Call the storyline REST endpoint and show the popup on success.
 	 * Fails silently — players never see an error.
 	 */
-	function triggerAIStoryline(eventType, upgradeId, upgradeName, prestigeLevel) {
+	function triggerAIStoryline(eventType, upgradeId, upgradeName, prestigeLevel, mediaUrl) {
 		if (typeof sacigAI === 'undefined' || !sacigAI.enabled) {
 			return;
 		}
 
-		const mediaUrl = eventType === 'prestige' ? getPrestigeMedia(prestigeLevel) : '';
+		if (typeof mediaUrl === 'undefined') {
+			mediaUrl = (eventType === 'prestige')
+				? getPrestigeMedia(prestigeLevel)
+				: getUpgradeMedia(upgradeId);
+		}
 
 		fetch(sacigAI.endpoint, {
 			method: 'POST',
@@ -988,7 +1022,28 @@
 	}
 
 	/**
-	 * Display the AI storyline popup with an optional media element.
+	 * Detect media type from a URL extension.
+	 *
+	 * @param {string} url Media URL.
+	 * @return {string|null} 'video', 'image', or null.
+	 */
+	function getMediaType(url) {
+		if (!url) return null;
+		const clean = url.split('?')[0].toLowerCase();
+		if (clean.endsWith('.mp4')) return 'video';
+		const imgs = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+		for (let i = 0; i < imgs.length; i++) {
+			if (clean.endsWith(imgs[i])) return 'image';
+		}
+		return null;
+	}
+
+	/**
+	 * Display the AI storyline popup. When media is present it plays first
+	 * (with a Skip button), then transitions to the AI text phase.
+	 *
+	 * @param {string} message  AI-generated text (may be empty for media-only).
+	 * @param {string} mediaUrl Optional MP4/image URL.
 	 */
 	function showAIPopup(message, mediaUrl) {
 		// Only one popup at a time.
@@ -997,68 +1052,130 @@
 			existing.remove();
 		}
 
+		const mediaType = getMediaType(mediaUrl);
+
 		const overlay = document.createElement('div');
 		overlay.className = 'sacig-ai-popup-overlay';
+		document.body.appendChild(overlay);
 
+		if (mediaType) {
+			renderMediaPhase(overlay, mediaUrl, mediaType, function() {
+				if (message) {
+					renderTextPhase(overlay, message);
+				} else {
+					overlay.remove();
+				}
+			});
+		} else {
+			if (!message) {
+				overlay.remove();
+				return;
+			}
+			renderTextPhase(overlay, message);
+		}
+
+		// Animate in on the next tick.
+		setTimeout(function() { overlay.classList.add('sacig-ai-popup-active'); }, 10);
+	}
+
+	/**
+	 * Render the media phase (video or image) with a Skip button. Calls
+	 * onComplete when the media ends, errors, times out, or is skipped/clicked.
+	 *
+	 * @param {HTMLElement} overlay   Popup overlay element.
+	 * @param {string}      mediaUrl  Media URL.
+	 * @param {string}      mediaType 'video' or 'image'.
+	 * @param {Function}    onComplete Callback to advance to the text phase.
+	 */
+	function renderMediaPhase(overlay, mediaUrl, mediaType, onComplete) {
+		overlay.classList.add('sacig-ai-popup-has-media');
+
+		let finished = false;
+		let timer;
+		let mediaEl;
+
+		function complete() {
+			if (finished) return;
+			finished = true;
+			clearTimeout(timer);
+			if (mediaEl && mediaType === 'video') {
+				try { mediaEl.pause(); } catch (e) { /* ignore */ }
+			}
+			overlay.innerHTML = '';
+			onComplete();
+		}
+
+		if (mediaType === 'video') {
+			mediaEl = document.createElement('video');
+			mediaEl.src         = mediaUrl;
+			mediaEl.autoplay    = true;
+			mediaEl.muted       = false;
+			mediaEl.playsInline = true;
+			mediaEl.controls    = false;
+			mediaEl.className   = 'sacig-ai-popup-media sacig-ai-popup-video';
+			mediaEl.addEventListener('ended', complete, { once: true });
+			mediaEl.addEventListener('error', complete, { once: true });
+		} else {
+			mediaEl = document.createElement('img');
+			mediaEl.src       = mediaUrl;
+			mediaEl.alt       = '';
+			mediaEl.className = 'sacig-ai-popup-media sacig-ai-popup-image';
+			mediaEl.addEventListener('error', complete, { once: true });
+			timer = setTimeout(complete, 5000);
+		}
+
+		const skipBtn = document.createElement('button');
+		skipBtn.type        = 'button';
+		skipBtn.className   = 'sacig-ai-popup-skip';
+		skipBtn.textContent = 'Skip ›';
+		skipBtn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			complete();
+		});
+
+		const wrapper = document.createElement('div');
+		wrapper.className = 'sacig-ai-popup-media-wrapper';
+		wrapper.appendChild(mediaEl);
+		wrapper.appendChild(skipBtn);
+		overlay.appendChild(wrapper);
+		overlay.addEventListener('click', complete, { once: true });
+	}
+
+	/**
+	 * Render the AI text phase with a Continue button and auto-dismiss.
+	 *
+	 * @param {HTMLElement} overlay Popup overlay element.
+	 * @param {string}      message AI-generated text.
+	 */
+	function renderTextPhase(overlay, message) {
 		const box = document.createElement('div');
 		box.className = 'sacig-ai-popup-box';
-
-		if (mediaUrl) {
-			let media;
-			if (/\.mp4($|\?)/i.test(mediaUrl)) {
-				media = document.createElement('video');
-				media.src = mediaUrl;
-				media.autoplay = true;
-				media.muted = true;
-				media.loop = true;
-				media.playsInline = true;
-			} else {
-				media = document.createElement('img');
-				media.src = mediaUrl;
-				media.alt = '';
-			}
-			media.className = 'sacig-ai-popup-media';
-			box.appendChild(media);
-		}
 
 		const text = document.createElement('p');
 		text.className = 'sacig-ai-popup-message';
 		text.textContent = message;
-		box.appendChild(text);
 
 		const close = document.createElement('button');
+		close.type = 'button';
 		close.className = 'sacig-ai-popup-close';
 		close.textContent = 'Continue Mining';
+
+		box.appendChild(text);
 		box.appendChild(close);
-
 		overlay.appendChild(box);
-		document.body.appendChild(overlay);
-
-		// Animate in on the next tick.
-		setTimeout(function() {
-			overlay.classList.add('sacig-ai-popup-active');
-		}, 10);
 
 		let dismissed = false;
 		function dismiss() {
-			if (dismissed) {
-				return;
-			}
+			if (dismissed) return;
 			dismissed = true;
 			overlay.classList.remove('sacig-ai-popup-active');
-			setTimeout(function() {
-				overlay.remove();
-			}, 300);
+			setTimeout(function() { overlay.remove(); }, 300);
 		}
 
 		close.addEventListener('click', dismiss);
 		overlay.addEventListener('click', function(e) {
-			if (e.target === overlay) {
-				dismiss();
-			}
+			if (e.target === overlay) dismiss();
 		});
-
-		// Auto-dismiss after 8 seconds.
 		setTimeout(dismiss, 8000);
 	}
 
@@ -1086,11 +1203,36 @@
 	// ===== BUTTON MODE SYSTEM =====
 
 	/**
+	 * Percentage-based slot positions for N buttons within the click area.
+	 * Mode 2: side-by-side. Mode 3: triangle.
+	 *
+	 * @param {number} buttonCount Number of buttons (1-3).
+	 * @return {Array<{x:number,y:number}>}
+	 */
+	function getSlotPositions(buttonCount) {
+		if (buttonCount === 2) {
+			return [
+				{ x: 25, y: 50 },
+				{ x: 75, y: 50 }
+			];
+		}
+		if (buttonCount === 3) {
+			return [
+				{ x: 25, y: 35 },
+				{ x: 75, y: 35 },
+				{ x: 50, y: 75 }
+			];
+		}
+		return [{ x: 50, y: 50 }];
+	}
+
+	/**
 	 * Build the anti-bot button layout for mode 2/3.
 	 *
-	 * The real mine button is moved into a slot container together with
-	 * (mode - 1) decoy buttons in a random order. Only the real button mines;
-	 * clicking a decoy plays a shake + "Wrong button!" flash and earns nothing.
+	 * The real mine button stays in the click area; (mode - 1) decoy clones are
+	 * appended alongside it and all buttons are absolutely positioned into random
+	 * slots. Only the real button mines; clicking a decoy plays a shake + ✗ and
+	 * earns nothing.
 	 *
 	 * No-op for mode 1 (single button keeps its original markup/behaviour).
 	 *
@@ -1099,26 +1241,15 @@
 	function renderButtonSlots() {
 		if (buttonSystem.mode < 2) return;
 
+		const clickArea = document.getElementById('sacig-clickArea');
+		if (!clickArea) return;
+
 		const real = document.getElementById('sacig-mineButton');
 		if (!real) return;
-
-		const host = real.parentNode;
-		if (!host) return;
-
-		// Create a slot container as a sibling wrapper for the real button.
-		let container = document.getElementById('sacig-buttonContainer');
-		if (!container) {
-			container = document.createElement('div');
-			container.id = 'sacig-buttonContainer';
-			container.className = 'sacig-button-container';
-			host.insertBefore(container, real);
-		}
 
 		// The real button mines; mark it for brighter styling.
 		real.classList.add('sacig-real-button');
 
-		// Collect slot members: the real button plus decoys.
-		const slots = [real];
 		const decoysNeeded = buttonSystem.mode - 1;
 		for (let i = 0; i < decoysNeeded; i++) {
 			const decoy = real.cloneNode(true);
@@ -1126,16 +1257,16 @@
 			decoy.removeAttribute('onclick');
 			decoy.classList.remove('sacig-real-button');
 			decoy.classList.add('sacig-decoy-button');
-			decoy.addEventListener('click', function(e) {
-				e.stopPropagation();
-				sacigDecoyClick(decoy);
-			});
-			slots.push(decoy);
+			(function (d) {
+				d.addEventListener('click', function (e) {
+					e.stopPropagation();
+					sacigDecoyClick(d);
+				});
+			})(decoy);
+			clickArea.appendChild(decoy);
 		}
 
-		// Shuffle then append into the container.
-		slots.sort(function() { return Math.random() - 0.5; })
-			.forEach(function(node) { container.appendChild(node); });
+		randomizeButtonPositions();
 	}
 
 	/**
@@ -1146,16 +1277,53 @@
 	 */
 	function sacigDecoyClick(btn) {
 		btn.classList.add('sacig-shake');
-		setTimeout(function() { btn.classList.remove('sacig-shake'); }, 500);
+		setTimeout(function() { btn.classList.remove('sacig-shake'); }, 300);
 
+		const rect = btn.getBoundingClientRect();
+
+		// Floating ✗ indicator over the clicked decoy.
+		const indicator = document.createElement('div');
+		indicator.className = 'sacig-decoy-indicator';
+		indicator.textContent = '✗'; // ✗
+		indicator.style.left = (rect.left + rect.width / 2 - 15) + 'px';
+		indicator.style.top  = (rect.top  + rect.height / 2 - 15) + 'px';
+		document.body.appendChild(indicator);
+		setTimeout(function() { indicator.remove(); }, 500);
+
+		// "Wrong button!" flash (retained from prior behavior).
 		const flash = document.createElement('div');
 		flash.className = 'sacig-click-particle sacig-wrong-flash';
 		flash.textContent = getLabel('wrongButton', 'Wrong button!');
-		const rect = btn.getBoundingClientRect();
 		flash.style.left = (rect.left + rect.width / 2 - 40) + 'px';
-		flash.style.top = (rect.top + rect.height / 2) + 'px';
+		flash.style.top  = (rect.top + rect.height / 2 + 20) + 'px';
 		document.body.appendChild(flash);
 		setTimeout(function() { flash.remove(); }, 600);
+	}
+
+	/**
+	 * Render the "find the brighter coin" hint below the click area (mode 2/3).
+	 * Hidden on the first real mine click.
+	 *
+	 * @return {void}
+	 */
+	function renderClickHint() {
+		if (buttonSystem.mode < 2) return;
+		const section = document.querySelector('.sacig-game-area');
+		if (!section || document.getElementById('sacig-clickHint')) return;
+
+		const hint = document.createElement('div');
+		hint.id = 'sacig-clickHint';
+		hint.className = 'sacig-click-hint';
+		hint.textContent = getLabel('findCoinPrompt', 'Find the brighter coin to mine!');
+		section.appendChild(hint);
+
+		const real = document.getElementById('sacig-mineButton');
+		if (real) {
+			real.addEventListener('click', function hideHint() {
+				hint.style.display = 'none';
+				real.removeEventListener('click', hideHint);
+			}, { once: true });
+		}
 	}
 
 	// ===== MOVEMENT TRIGGER SYSTEM =====
@@ -1200,25 +1368,57 @@
 	}
 
 	/**
-	 * Randomly reorder the button slot children to swap their positions, with a
-	 * brief CSS transition. No-op outside button mode 2/3.
+	 * Animate buttons to randomized absolute slot positions with chaos jitter.
+	 * No-op outside button mode 2/3.
 	 *
 	 * @return {void}
 	 */
-	function swapButtonPositions() {
-		const container = document.getElementById('sacig-buttonContainer');
-		if (!container || buttonSystem.mode < 2) return;
+	function randomizeButtonPositions() {
+		const clickArea = document.getElementById('sacig-clickArea');
+		if (!clickArea || buttonSystem.mode < 2) return;
 
-		const nodes = Array.prototype.slice.call(container.children);
-		if (nodes.length < 2) return;
+		const buttons = Array.prototype.slice.call(
+			clickArea.querySelectorAll('.sacig-mine-button')
+		);
+		if (buttons.length <= 1) return;
 
+		const slots = getSlotPositions(buttons.length);
+		const chaos = getChaosLevel();
+
+		// Fisher-Yates shuffle of the slot list.
+		const shuffled = slots.slice();
+		for (let i = shuffled.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			const tmp = shuffled[i];
+			shuffled[i] = shuffled[j];
+			shuffled[j] = tmp;
+		}
+
+		const areaWidth  = clickArea.offsetWidth;
+		const areaHeight = clickArea.offsetHeight;
+		const buttonSize = buttons[0].offsetWidth;
 		const speed = getMovementSpeed();
-		nodes.forEach(function(node) {
-			node.style.transition = 'transform ' + speed + 'ms ease, order ' + speed + 'ms ease';
-		});
 
-		nodes.sort(function() { return Math.random() - 0.5; })
-			.forEach(function(node) { container.appendChild(node); });
+		buttons.forEach(function (btn, idx) {
+			const slot = shuffled[idx];
+			let x = (slot.x / 100) * areaWidth  - (buttonSize / 2);
+			let y = (slot.y / 100) * areaHeight - (buttonSize / 2);
+
+			if (chaos > 0.3) {
+				const jitter = 30 * chaos;
+				x += (Math.random() - 0.5) * jitter * 2;
+				y += (Math.random() - 0.5) * jitter * 2;
+			}
+
+			x = Math.max(10, Math.min(areaWidth  - buttonSize - 10, x));
+			y = Math.max(10, Math.min(areaHeight - buttonSize - 10, y));
+
+			btn.style.transition = 'left ' + speed + 'ms ease-out, top ' + speed + 'ms ease-out';
+			btn.style.position   = 'absolute';
+			btn.style.transform  = 'none';
+			btn.style.left       = x + 'px';
+			btn.style.top        = y + 'px';
+		});
 
 		buttonSystem.lastMoveTime = Date.now();
 		buttonSystem.moveCount++;
@@ -1237,7 +1437,7 @@
 		}
 		if (buttonSystem.mode < 2) return;
 		if (buttonSystem.movementTrigger === 'timer' || buttonSystem.movementTrigger === 'both') {
-			buttonSystem.timerInterval = setInterval(swapButtonPositions, getTimerInterval());
+			buttonSystem.timerInterval = setInterval(randomizeButtonPositions, getTimerInterval());
 		}
 	}
 
@@ -1273,13 +1473,32 @@
 	 * @return {void}
 	 */
 	window.sacigSelfReset = function() {
-		if (!window.confirm('Start a new run? You keep your prestige level and best score.')) {
+		const modal = document.getElementById('sacig-resetModal');
+
+		// Fallback to a native confirm if the modal markup is absent.
+		if (!modal) {
+			if (!window.confirm('Start a new run? You keep your prestige level and best score.')) {
+				return;
+			}
+			updateBestScores();
+			performRunReset();
+			saveGame();
+			updateUI();
 			return;
 		}
-		updateBestScores();
-		performRunReset();
-		saveGame();
-		updateUI();
+
+		const confirmBtn = document.getElementById('sacig-confirmResetBtn');
+		if (confirmBtn) {
+			confirmBtn.onclick = function() {
+				modal.style.display = 'none';
+				updateBestScores();
+				performRunReset();
+				saveGame();
+				updateUI();
+			};
+		}
+
+		modal.style.display = 'flex';
 	};
 
 	/**
@@ -1359,15 +1578,38 @@
 	 */
 	function confirmDifficultyChange(newDifficulty) {
 		if (newDifficulty === gameState.difficulty) return;
-		const ok = window.confirm(
-			'Changing difficulty resets your current run but keeps prestige and best scores.\n\n' +
-			'Switch to ' + newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1) + '?'
-		);
-		if (!ok) {
-			syncDifficultySelector();
+
+		const label = newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1);
+		const modal = document.getElementById('sacig-difficultyModal');
+
+		// Fallback to a native confirm if the modal markup is absent.
+		if (!modal) {
+			const ok = window.confirm(
+				'Changing difficulty resets your current run but keeps prestige and best scores.\n\n' +
+				'Switch to ' + label + '?'
+			);
+			if (!ok) {
+				syncDifficultySelector();
+				return;
+			}
+			changeDifficulty(newDifficulty);
 			return;
 		}
-		changeDifficulty(newDifficulty);
+
+		const info = document.getElementById('sacig-difficultyChangeInfo');
+		if (info) {
+			info.textContent = getLabel('difficultyLabel', 'Difficulty') + ': ' + label;
+		}
+
+		const confirmBtn = document.getElementById('sacig-confirmDifficultyBtn');
+		if (confirmBtn) {
+			confirmBtn.onclick = function() {
+				modal.style.display = 'none';
+				changeDifficulty(newDifficulty);
+			};
+		}
+
+		modal.style.display = 'flex';
 	}
 
 	/**
@@ -1432,6 +1674,7 @@
 	 */
 	function setupGameplayFeatures() {
 		renderButtonSlots();
+		renderClickHint();
 		startMovementTimer();
 		setupSelfReset();
 		setupDifficultySelector();
@@ -1469,6 +1712,49 @@
 		if (!localStorage.getItem('sacigCryptoMinerVisited')) {
 			setTimeout(() => window.sacigShowModal(), 500);
 			localStorage.setItem('sacigCryptoMinerVisited', 'true');
+		}
+
+		// Prevent double-tap zoom on the game container (mobile).
+		// touch-action: manipulation on buttons handles most cases;
+		// this catches taps on the container background.
+		var sacigContainer = document.querySelector('.sacig-container');
+		if (sacigContainer) {
+			var lastTapTime = 0;
+			var lastTapX = null;
+			var lastTapY = null;
+
+			sacigContainer.addEventListener('touchend', function(e) {
+				var target = e.target && e.target.nodeType === 1
+					? e.target : e.target && e.target.parentElement;
+
+				// Skip mine buttons — touch-action:manipulation handles them.
+				if (target && target.closest(
+					'button, a, input, select, .sacig-mine-button, ' +
+					'.sacig-upgrade-item, [role="button"]'
+				)) { return; }
+
+				var now   = Date.now();
+				var diff  = now - lastTapTime;
+				var touch = e.changedTouches && e.changedTouches[0];
+				var tapX  = touch ? touch.clientX : null;
+				var tapY  = touch ? touch.clientY : null;
+				var sameSpot = (
+					tapX !== null && tapY !== null &&
+					lastTapX !== null && lastTapY !== null &&
+					Math.abs(tapX - lastTapX) <= 25 &&
+					Math.abs(tapY - lastTapY) <= 25
+				);
+
+				if (diff < 300 && diff > 0 && sameSpot) {
+					e.preventDefault();
+				}
+
+				lastTapTime = now;
+				lastTapX = tapX;
+				lastTapY = tapY;
+			}, { passive: false });
+			// passive:false required to allow preventDefault().
+			// Scoped to game container only — not the whole page.
 		}
 	}
 

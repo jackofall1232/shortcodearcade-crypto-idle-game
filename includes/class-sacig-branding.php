@@ -195,6 +195,19 @@ class SACIG_Branding {
 			);
 		}
 
+		// UI label overrides. Empty value = use the localized default in the game.
+		foreach ( array_keys( self::ui_label_keys() ) as $label_option ) {
+			register_setting(
+				'sacig_branding_group',
+				$label_option,
+				array(
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_text_field',
+				)
+			);
+		}
+
 		add_settings_section(
 			'sacig_branding_section',
 			__( 'Branding Settings', 'shortcodearcade-crypto-idle-game' ),
@@ -306,6 +319,66 @@ class SACIG_Branding {
 	}
 
 	/**
+	 * UI label override option keys mapped to their field label and default text.
+	 *
+	 * The defaults mirror the localized strings in class-sacig-miner-shortcode.php
+	 * so the input placeholders match what the game shows when left blank.
+	 *
+	 * @return array<string,array{label:string,default:string}>
+	 */
+	private static function ui_label_keys() {
+		return array(
+			'sacig_label_per_click'             => array( 'label' => __( 'Per Click Label', 'shortcodearcade-crypto-idle-game' ),       'default' => __( 'Per Click', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_per_second'            => array( 'label' => __( 'Per Second Label', 'shortcodearcade-crypto-idle-game' ),      'default' => __( 'Per Second', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_miner_rating'          => array( 'label' => __( 'Miner Rating Label', 'shortcodearcade-crypto-idle-game' ),    'default' => __( 'Miner Rating', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_miners_active'         => array( 'label' => __( 'Miners Active Label', 'shortcodearcade-crypto-idle-game' ),   'default' => __( 'Miners Active', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_miners_stopped'        => array( 'label' => __( 'Miners Stopped Label', 'shortcodearcade-crypto-idle-game' ),  'default' => __( 'Miners Stopped', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_miners_restart'        => array( 'label' => __( 'Miners Restart Label', 'shortcodearcade-crypto-idle-game' ),  'default' => __( 'Restart', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_hard_fork'             => array( 'label' => __( 'Hard Fork Label', 'shortcodearcade-crypto-idle-game' ),       'default' => __( 'Hard Fork', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_hard_fork_description' => array( 'label' => __( 'Hard Fork Description', 'shortcodearcade-crypto-idle-game' ), 'default' => __( 'Reset with permanent +10% bonus to all production', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_chaos_level'           => array( 'label' => __( 'Chaos Level Label', 'shortcodearcade-crypto-idle-game' ),     'default' => __( 'Chaos Level', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_difficulty'            => array( 'label' => __( 'Difficulty Label', 'shortcodearcade-crypto-idle-game' ),      'default' => __( 'Difficulty', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_difficulty_easy'       => array( 'label' => __( 'Easy Tier Label', 'shortcodearcade-crypto-idle-game' ),       'default' => __( 'Easy', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_difficulty_medium'     => array( 'label' => __( 'Medium Tier Label', 'shortcodearcade-crypto-idle-game' ),     'default' => __( 'Medium', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_difficulty_hard'       => array( 'label' => __( 'Hard Tier Label', 'shortcodearcade-crypto-idle-game' ),       'default' => __( 'Hard', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_find_coin_prompt'      => array( 'label' => __( 'Find Coin Prompt', 'shortcodearcade-crypto-idle-game' ),      'default' => __( 'Find the brighter coin to mine!', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_wrong_button'          => array( 'label' => __( 'Wrong Button Flash', 'shortcodearcade-crypto-idle-game' ),    'default' => __( 'Wrong button!', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_leaderboard_title'     => array( 'label' => __( 'Leaderboard Title', 'shortcodearcade-crypto-idle-game' ),     'default' => __( 'Top Players', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_prestige_column'       => array( 'label' => __( 'Prestige Column', 'shortcodearcade-crypto-idle-game' ),       'default' => __( 'Prestige', 'shortcodearcade-crypto-idle-game' ) ),
+			'sacig_label_best_score_column'     => array( 'label' => __( 'Best Score Column', 'shortcodearcade-crypto-idle-game' ),     'default' => __( 'Best Score', 'shortcodearcade-crypto-idle-game' ) ),
+		);
+	}
+
+	/**
+	 * Render the UI Labels override table inside the branding settings form.
+	 *
+	 * Fields save to the same sacig_branding_group; an empty value keeps the
+	 * default game label.
+	 */
+	public function render_ui_labels_section() {
+		?>
+		<h2><?php esc_html_e( 'UI Labels', 'shortcodearcade-crypto-idle-game' ); ?></h2>
+		<p class="description" style="margin-bottom:12px;"><?php esc_html_e( 'Rename any player-facing label. Leave blank to use the default shown in each placeholder.', 'shortcodearcade-crypto-idle-game' ); ?></p>
+		<table class="form-table" role="presentation">
+			<?php foreach ( self::ui_label_keys() as $label_key => $cfg ) : ?>
+				<tr>
+					<th scope="row"><label for="<?php echo esc_attr( $label_key ); ?>"><?php echo esc_html( $cfg['label'] ); ?></label></th>
+					<td>
+						<input type="text"
+							id="<?php echo esc_attr( $label_key ); ?>"
+							name="<?php echo esc_attr( $label_key ); ?>"
+							class="regular-text"
+							maxlength="120"
+							value="<?php echo esc_attr( get_option( $label_key, '' ) ); ?>"
+							placeholder="<?php echo esc_attr( $cfg['default'] ); ?>">
+					</td>
+				</tr>
+			<?php endforeach; ?>
+		</table>
+		<?php
+	}
+
+	/**
 	 * Render the branding settings page.
 	 */
 	public function render_settings_page() {
@@ -323,6 +396,7 @@ class SACIG_Branding {
 							<?php
 							settings_fields( 'sacig_branding_group' );
 							do_settings_sections( 'shortcodearcade-crypto-idle-game-branding' );
+							$this->render_ui_labels_section();
 							submit_button( __( 'Save Branding', 'shortcodearcade-crypto-idle-game' ) );
 							?>
 						</form>

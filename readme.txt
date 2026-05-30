@@ -6,7 +6,7 @@ Donate link: https://zillha.com
 Tags: game, idle game, crypto, clicker game, mining game
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 2.0.2
+Stable tag: 2.1.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -197,6 +197,22 @@ and automatic winner selection — is planned for version 2.1. Follow
 6. Admin settings panel  
 
 == Changelog ==
+
+= 2.1.0 =
+* NEW: Per-upgrade AI media URLs (video/image per upgrade tier)
+* NEW: Phased media→text AI popup with Skip button
+* NEW: Styled difficulty change and self-reset confirmation modals
+* NEW: UI label override system — all game strings customizable via Branding admin
+* NEW: Real button glow animation + decoy dim effect + click hint + decoy ✗ indicator
+* NEW: Absolute-position button movement with chaos jitter (triangle pattern mode 3)
+* NEW: Mobile double-tap zoom prevention
+* NEW: Footer {year}/{title} token substitution
+* NEW: Currency symbol wired to frontend JS
+* FIXED: Miner status bar was completely unstyled
+* FIXED: Leaderboard difficulty tabs rendered but had no CSS styling
+* FIXED: Login/register forms rendered unstyled
+* FIXED: Offline earnings incorrectly capped at 24h instead of 48h
+* FIXED: Per-upgrade AI media resolver missing from JS and admin
 
 = 2.0.2 =
 * NEW: Custom upgrade names via Branding settings (all 10 tiers)
