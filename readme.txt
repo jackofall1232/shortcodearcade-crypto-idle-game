@@ -1,6 +1,8 @@
 === Shortcode Arcade Crypto Idle Game ===
 Contributors: jackofall1232
-Donate link: https://shortcodearcade.com
+Author: ZillHa Games
+Author URI: https://zillha.com
+Donate link: https://zillha.com
 Tags: game, idle game, crypto, clicker game, mining game
 Requires at least: 6.0
 Tested up to: 7.0
@@ -13,11 +15,11 @@ A crypto-themed idle clicker game with balanced progression, prestige mechanics,
 
 == Description ==
 
-**Shortcode Arcade Crypto Idle Game** is an idle clicker game where players grow a virtual crypto mining operation over time. Players click to generate in-game currency, purchase upgrades, and unlock passive income systems.
+**Shortcode Arcade Crypto Idle Game** is a fully-featured crypto-themed idle clicker game from **ZillHa Games** — and every single feature is **100% free**. No upgrades, no Pro version, no paywalls. Everything that was previously locked behind a premium license is now included for everyone.
 
-The game is designed for **fair, long-term progression**, using a carefully tuned scaling curve combined with a prestige ("Hard Fork") system to prevent runaway inflation and repetitive upgrade stacking.
+Players grow a virtual crypto mining operation by clicking to generate in-game currency, purchasing upgrades, and unlocking passive income systems. The game is designed for **fair, long-term progression**, using a carefully tuned Elo scaling curve combined with a prestige ("Hard Fork") system to prevent runaway inflation and repetitive upgrade stacking.
 
-This plugin is self-contained and runs entirely inside WordPress, making it ideal for gaming sites, communities, or experimental content.
+This plugin is self-contained and runs entirely inside WordPress, making it ideal for gaming sites, crypto communities, membership sites, or any site looking to boost player engagement. Want to see it in action? Visit [ZillHa.com](https://zillha.com) for live examples and setup guides.
 
 **Core Features:**
 
@@ -149,7 +151,7 @@ Local saves are stored in browser localStorage. Cloud saves are stored in WordPr
 
 = Is it compatible with WordPress 7.0? =
 
-Yes. Version 1.0.0 is fully tested and compatible with WordPress 7.0, with all code updated to align with modern WordPress standards and best practices.
+Yes. Version 2.0.0 is fully tested and compatible with WordPress 7.0, with all code updated to align with modern WordPress standards and best practices.
 
 = Does the plugin send data to external servers? =
 
@@ -264,6 +266,9 @@ You must supply your own API key in Settings → AI Storyline.
 
 == Upgrade Notice ==
 
+= 2.0.0 =
+Major update — all Pro features are now 100% free. Full arcade admin UI, branding system, AI storyline, login pages, and leaderboards included at no cost. Upgrade recommended for all sites.
+
 = 1.0.0 =
 Stable release with full WordPress 7.0 compatibility. Recommended for all sites.
 
@@ -275,8 +280,8 @@ Final namespace and prefix audit for WordPress.org compliance. Shortcodes update
 
 == Credits ==
 
-Developed by: jackofall1232  
-Website: https://shortcodearcade.com
+Developed by: ZillHa Games
+Website: https://zillha.com
 
 == Privacy Policy ==
 

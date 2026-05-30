@@ -73,7 +73,15 @@ class SACIG_Admin {
      * Registers a top-level "Crypto Arcade" menu with five subpages.
      */
     public function add_admin_menu() {
-        $icon = 'data:image/svg+xml;base64,' . base64_encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="none" stroke="black" stroke-width="1.5"/><text x="10" y="14" text-anchor="middle" font-size="11" font-weight="bold" fill="black" font-family="Arial">&#x20BF;</text></svg>');
+        $icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
+            . '<circle cx="10" cy="10" r="9" fill="#f7931a"/>'
+            . '<circle cx="10" cy="10" r="8" fill="#f7a940"/>'
+            . '<text x="10" y="14" text-anchor="middle" '
+            . 'font-size="11" font-weight="900" fill="#ffffff" '
+            . 'font-family="Arial,sans-serif">&#x20BF;</text>'
+            . '</svg>';
+
+        $icon = 'data:image/svg+xml;base64,' . base64_encode( $icon_svg );
 
         add_menu_page(
             __( 'Crypto Arcade', 'shortcodearcade-crypto-idle-game' ),
@@ -985,20 +993,23 @@ class SACIG_Admin {
      * Output inline CSS to recolor the admin menu icon on our pages.
      */
     public function output_menu_color_css() {
-        // Only output on our pages
-        $screen = get_current_screen();
-        if (!$screen || strpos($screen->id, 'shortcodearcade-crypto-idle-game') === false) {
-            return;
-        }
         ?>
         <style>
+        /* Remove WP's grey filter so the gold coin color shows */
         #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-menu-image img {
-            filter: brightness(0) invert(1);
-            opacity: 0.7;
+            filter: none !important;
+            opacity: 1 !important;
         }
-        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game:hover .wp-menu-image img,
-        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game.current .wp-menu-image img {
-            opacity: 1;
+
+        /* Purple left border on active submenu items */
+        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-submenu li.current a {
+            color: #a855f7;
+            border-left: 3px solid #a855f7;
+            padding-left: 9px;
+        }
+
+        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-submenu a:hover {
+            color: #e879f9;
         }
         </style>
         <?php
