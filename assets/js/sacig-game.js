@@ -678,31 +678,59 @@
 	 * Calculate offline progress
 	 */
 	function calculateOfflineProgress() {
-		const lastSaveTime = localStorage.getItem('sacigLastSaveTime');
-		if (!lastSaveTime) return;
+		const lastSaveRaw = localStorage.getItem('sacigLastSaveTime');
+		if (!lastSaveRaw) return;
 
+		const lastSaveTime = Number(lastSaveRaw);
 		const now = Date.now();
-		const secondsAway = Math.min((now - lastSaveTime) / 1000, 86400); // Cap at 24 hours
 
-		// Only calculate if away for more than 60 seconds
-		if (secondsAway < 60) return;
-
-		const offlineEarned = secondsAway * gameState.passiveIncome * gameState.prestigeMultiplier;
-
-		if (offlineEarned > 0) {
-			gameState.satoshis += offlineEarned;
-			gameState.satoshis = Number(gameState.satoshis.toFixed(6));
-
-			// Show notification to player
-			const hours = Math.floor(secondsAway / 3600);
-			const minutes = Math.floor((secondsAway % 3600) / 60);
-			let timeAway = '';
-			if (hours > 0) timeAway = `${hours}h ${minutes}m`;
-			else timeAway = `${minutes}m`;
-
+		// Miners that had already stopped before the player left earn nothing
+		// offline — they must be restarted manually.
+		if (gameState.minersActive === false) {
 			setTimeout(() => {
-				alert(`Welcome back! You were away for ${timeAway} and earned ${formatNumber(offlineEarned)} ${sacigCurrencyLc}!`);
+				alert('Your miners had stopped before you left. Hit Restart to resume passive mining.');
 			}, 500);
+			return;
+		}
+
+		// Passive miners keep running offline only until the inactivity timeout
+		// (48h from the last activity). Offline earnings therefore end at whichever
+		// comes first: now, or the moment that timeout would have fired.
+		const timeoutAt   = (gameState.lastActiveTime || now) + MINER_TIMEOUT_MS;
+		const timedOut    = now >= timeoutAt;
+		const offlineEnd  = Math.min(now, timeoutAt);
+
+		// Seconds the miners actually ran offline (since the last save), clamped to
+		// the 24h offline cap.
+		const secondsAway = Math.min(Math.max(0, (offlineEnd - lastSaveTime) / 1000), 86400);
+
+		// Only calculate if the miners ran offline for more than 60 seconds.
+		if (secondsAway >= 60) {
+			const offlineEarned = secondsAway * gameState.passiveIncome * gameState.prestigeMultiplier;
+
+			if (offlineEarned > 0) {
+				gameState.satoshis += offlineEarned;
+				gameState.satoshis = Number(gameState.satoshis.toFixed(6));
+
+				// Show notification to player
+				const hours = Math.floor(secondsAway / 3600);
+				const minutes = Math.floor((secondsAway % 3600) / 60);
+				let timeAway = '';
+				if (hours > 0) timeAway = `${hours}h ${minutes}m`;
+				else timeAway = `${minutes}m`;
+
+				const suffix = timedOut ? ' Your miners have since stopped — hit Restart to resume.' : '';
+				setTimeout(() => {
+					alert(`Welcome back! You were away for ${timeAway} and earned ${formatNumber(offlineEarned)} ${sacigCurrencyLc}!${suffix}`);
+				}, 500);
+			}
+		}
+
+		// If the inactivity window elapsed while the player was away, the miners
+		// are now stopped (UI is refreshed by the updateMinerStatusUI() call that
+		// follows this in initGame()).
+		if (timedOut) {
+			gameState.minersActive = false;
 		}
 	}
 
