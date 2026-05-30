@@ -6,6 +6,7 @@
  * - window.sacigMine() - Mining click handler
  * - window.sacigBuyUpgrade(id) - Upgrade purchase handler
  * - window.sacigPrestige() - Prestige/Hard Fork handler
+ * - window.sacigSelfReset() - Self-reset (new run) handler
  * - window.sacigShowModal() - Info modal display
  * - window.sacigHideModal() - Info modal close
  *
@@ -27,13 +28,40 @@
         prestigeLevel: 0,
         prestigeMultiplier: 1,
         upgrades: {},
+        difficulty: 'medium',
         version: '0.4.6'
     };
-    
+
     // Cloud save settings (passed from WordPress)
     const cloudSavesEnabled = typeof sacigSettings !== 'undefined' && sacigSettings.cloudSavesEnabled;
     const isUserLoggedIn = typeof sacigSettings !== 'undefined' && sacigSettings.isUserLoggedIn;
     const useCloudSaves = cloudSavesEnabled && isUserLoggedIn;
+
+    // Decoy mine buttons created for anti-bot button modes.
+    let decoyButtons = [];
+
+    /**
+     * Admin gameplay settings exposed via wp_localize_script (window.sacigGameplay).
+     */
+    function getGameplay() {
+        const gp = (typeof sacigGameplay !== 'undefined') ? sacigGameplay : {};
+        return {
+            difficulty: gp.difficulty || 'medium',
+            difficultyIntensity: (typeof gp.difficultyIntensity === 'number') ? gp.difficultyIntensity : 0.8,
+            allowPlayerDifficulty: !!gp.allowPlayerDifficulty,
+            buttonMode: Math.min(3, Math.max(1, parseInt(gp.buttonMode, 10) || 1)),
+            movementTrigger: gp.movementTrigger || 'none',
+            enableSelfReset: gp.enableSelfReset !== false
+        };
+    }
+
+    /**
+     * Upgrade cost scale relative to medium (0.8 intensity):
+     * easy is cheaper, hard is pricier.
+     */
+    function getDifficultyCostScale() {
+        return getGameplay().difficultyIntensity / 0.8;
+    }
 
     // Branding (passed from WordPress). Falls back to the default currency name.
     const sacigCurrency = (typeof sacigSettings !== 'undefined' && sacigSettings.currencyName) ? sacigSettings.currencyName : 'Satoshis';
@@ -226,7 +254,7 @@
         const ratingDiff = upgrade.rating - gameState.rating;
         const eloMultiplier = Math.max(0.5, 1 + (ratingDiff / 400));
         const ownedMultiplier = Math.pow(upgrade.costMultiplier, owned);
-        return Math.ceil(upgrade.baseCost * eloMultiplier * ownedMultiplier);
+        return Math.ceil(upgrade.baseCost * eloMultiplier * ownedMultiplier * getDifficultyCostScale());
     }
 
     /**
@@ -559,11 +587,13 @@
                 
                 // Merge loaded state with defaults (for new fields)
                 gameState = Object.assign({}, gameState, loadedState);
-                
+                gameState.difficulty = gameState.difficulty || 'medium';
+
                 // Update version
                 gameState.version = '0.4.6';
-                
+
                 updateUI();
+                syncDifficultySelector();
             } catch (e) {
                 console.error('Failed to load saved game:', e);
             }
@@ -587,11 +617,15 @@
             if (data.success && data.data) {
                 // Cloud save exists, use it
                 gameState = Object.assign({}, gameState, data.data);
-                
+
+                // Server is authoritative for difficulty (enforces the global setting).
+                gameState.difficulty = data.difficulty || gameState.difficulty || 'medium';
+
                 // Update version
                 gameState.version = '0.4.6';
-                
+
                 updateUI();
+                syncDifficultySelector();
                 console.log('Loaded from cloud');
             } else {
                 // No cloud save, try localStorage
@@ -826,7 +860,10 @@
     async function initGame() {
         // Apply custom branding theme
         applyBrandingTheme();
-        
+
+        // Apply admin gameplay settings (anti-bot buttons, self-reset, difficulty).
+        setupGameplayFeatures();
+
         // Load game state
         await loadGame();
         
@@ -846,6 +883,186 @@
         if (!localStorage.getItem('sacigCryptoMinerVisited')) {
             setTimeout(() => window.sacigShowModal(), 500);
             localStorage.setItem('sacigCryptoMinerVisited', 'true');
+        }
+    }
+
+    /**
+     * Apply admin gameplay settings to the rendered game.
+     */
+    function setupGameplayFeatures() {
+        const gp = getGameplay();
+        setupButtonMode(gp);
+        setupSelfReset(gp);
+        setupDifficultySelector(gp);
+    }
+
+    /**
+     * Anti-bot button mode: render (buttonMode - 1) identical decoys alongside
+     * the real mine button. Only the real button mines; decoys give harmless
+     * visual feedback. Optionally reshuffle positions on click/timer.
+     */
+    function setupButtonMode(gp) {
+        const real = document.getElementById('sacig-mineButton');
+        if (!real || gp.buttonMode < 2) {
+            return;
+        }
+        const parent = real.parentNode;
+        if (!parent) {
+            return;
+        }
+
+        const decoysNeeded = gp.buttonMode - 1;
+        for (let i = 0; i < decoysNeeded; i++) {
+            const decoy = real.cloneNode(true);
+            decoy.id = 'sacig-mineDecoy-' + i;
+            decoy.removeAttribute('onclick');
+            decoy.classList.add('sacig-mine-decoy');
+            decoy.addEventListener('click', function(e) {
+                e.stopPropagation();
+                decoy.classList.add('sacig-clicked');
+                setTimeout(function() { decoy.classList.remove('sacig-clicked'); }, 100);
+            });
+            parent.appendChild(decoy);
+            decoyButtons.push(decoy);
+        }
+
+        shuffleButtons(parent);
+
+        if (gp.movementTrigger === 'timer' || gp.movementTrigger === 'both') {
+            setInterval(function() { shuffleButtons(parent); }, 3000);
+        }
+        if (gp.movementTrigger === 'click' || gp.movementTrigger === 'both') {
+            real.addEventListener('click', function() { shuffleButtons(parent); });
+        }
+    }
+
+    /**
+     * Re-append the real + decoy buttons in random order to swap their positions.
+     */
+    function shuffleButtons(parent) {
+        const real = document.getElementById('sacig-mineButton');
+        const buttons = [real].concat(decoyButtons).filter(Boolean);
+        buttons.sort(function() { return Math.random() - 0.5; })
+            .forEach(function(b) { parent.appendChild(b); });
+    }
+
+    /**
+     * Self-reset: add a NEW RUN control that resets the run while keeping
+     * prestige level, multiplier and (server-side) best scores.
+     */
+    function setupSelfReset(gp) {
+        if (!gp.enableSelfReset) {
+            return;
+        }
+        const section = document.querySelector('.sacig-prestige-section');
+        if (!section || document.getElementById('sacig-selfResetButton')) {
+            return;
+        }
+        const btn = document.createElement('button');
+        btn.id = 'sacig-selfResetButton';
+        btn.type = 'button';
+        btn.className = 'sacig-prestige-button sacig-self-reset-button';
+        btn.textContent = 'NEW RUN';
+        btn.title = 'Start a new run, keeping your prestige level and best score';
+        btn.addEventListener('click', window.sacigSelfReset);
+        section.appendChild(btn);
+    }
+
+    window.sacigSelfReset = function() {
+        if (!window.confirm('Start a new run? You keep your prestige level and best score.')) {
+            return;
+        }
+        resetRunKeepingPrestige();
+        saveGame();
+    };
+
+    /**
+     * Reset the active run but preserve prestige progression and difficulty.
+     */
+    function resetRunKeepingPrestige() {
+        gameState.satoshis = 0;
+        gameState.clickPower = 1;
+        gameState.passiveIncome = 0;
+        gameState.rating = 1000;
+        gameState.upgrades = {};
+        recalculateProduction();
+        updateUI();
+    }
+
+    /**
+     * Player-facing difficulty selector (only when admin allows it).
+     */
+    function setupDifficultySelector(gp) {
+        if (!gp.allowPlayerDifficulty) {
+            return;
+        }
+        const section = document.querySelector('.sacig-prestige-section');
+        if (!section || document.getElementById('sacig-difficultySelect')) {
+            return;
+        }
+        const wrap = document.createElement('div');
+        wrap.className = 'sacig-difficulty-selector';
+
+        const label = document.createElement('label');
+        label.setAttribute('for', 'sacig-difficultySelect');
+        label.textContent = 'Difficulty: ';
+
+        const select = document.createElement('select');
+        select.id = 'sacig-difficultySelect';
+        ['easy', 'medium', 'hard'].forEach(function(d) {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+            select.appendChild(opt);
+        });
+        select.value = gameState.difficulty || gp.difficulty || 'medium';
+        select.addEventListener('change', function() { changeDifficulty(select.value); });
+
+        wrap.appendChild(label);
+        wrap.appendChild(select);
+        section.appendChild(wrap);
+    }
+
+    function syncDifficultySelector() {
+        const select = document.getElementById('sacig-difficultySelect');
+        if (select) {
+            select.value = gameState.difficulty || 'medium';
+        }
+    }
+
+    /**
+     * Change difficulty. With cloud saves the server resets the run while
+     * preserving prestige/best scores; otherwise reset locally.
+     */
+    function changeDifficulty(difficulty) {
+        if (!window.confirm('Changing difficulty starts a new run on the selected difficulty. Continue?')) {
+            syncDifficultySelector();
+            return;
+        }
+
+        gameState.difficulty = difficulty;
+
+        if (useCloudSaves) {
+            fetch(sacigSettings.restUrl + 'change-difficulty', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': sacigSettings.nonce
+                },
+                body: JSON.stringify({ difficulty: difficulty })
+            })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data && data.success) {
+                        loadGame();
+                    } else {
+                        syncDifficultySelector();
+                    }
+                })
+                .catch(function() { syncDifficultySelector(); });
+        } else {
+            resetRunKeepingPrestige();
+            saveGame();
         }
     }
 
