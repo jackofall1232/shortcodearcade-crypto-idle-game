@@ -479,11 +479,11 @@ class SACIG_Miner_Shortcode {
                 <?php
                 foreach ($difficulties as $diff => $diff_label) :
                     $results = SACIG_Cloud_Save::get_leaderboard_by_difficulty($diff, $limit);
-                    $hidden  = ($diff === $default_tab) ? '' : ' style="display:none;"';
+                    $is_hidden = ($diff !== $default_tab);
                     /* translators: %s: difficulty name (Easy/Medium/Hard). */
                     $empty   = sprintf(__('No players on %s yet. Be the first!', 'shortcodearcade-crypto-idle-game'), $diff_label);
                     ?>
-                    <div class="sacig-leaderboard-panel" data-difficulty="<?php echo esc_attr($diff); ?>"<?php echo $hidden; ?>>
+                    <div class="sacig-leaderboard-panel" data-difficulty="<?php echo esc_attr($diff); ?>"<?php echo $is_hidden ? ' style="display:none;"' : ''; ?>>
                         <?php
                         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- markup escaped inside render_leaderboard_table()
                         echo $this->render_leaderboard_table($results, $show_avatars, $highlight, $currency_name, $empty);
