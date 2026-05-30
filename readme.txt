@@ -24,20 +24,28 @@ This plugin is self-contained and runs entirely inside WordPress, making it idea
 **Core Features:**
 
 * **Click-to-Mine Gameplay** – Generate in-game currency through active clicking
-* **Balanced Progression Curve** – Upgrade costs scale dynamically for long-term play
-* **Multiple Upgrade Paths** – Unlock and stack production upgrades
-* **Prestige System ("Hard Fork")** – Reset progress for permanent production bonuses
+* **Elo-Balanced Progression** – Upgrade costs scale dynamically using a rating system for fair long-term play
+* **Multiple Upgrade Paths** – Unlock and stack 10 production upgrades with diminishing returns
+* **Prestige System ("Hard Fork")** – Reset progress for permanent +10% production bonuses per level
 * **Auto-Save** – Progress saves automatically at regular intervals
-* **Offline Progress** – Earn limited passive income while away
-* **Modern UI** – Clean, game-focused interface
-* **Mobile Responsive** – Fully playable on desktop, tablet, and mobile
+* **Offline Progress** – Earn passive income while away, capped at 48 hours
+* **Miner Timeout System** – Passive miners pause after 48 hours of inactivity to keep leaderboards fair
+* **Anti-Bot Protection** – Multi-button system with decoy detection (1, 2, or 3 button modes)
+* **White-Label Branding** – Customize game title, currency name, coin image, colors, and all 10 upgrade names
+* **AI Storyline Popups** – AI-generated narrative messages on upgrade unlocks and prestige events (optional, requires API key)
+* **Custom Theming** – Full color scheme control via admin branding settings, applied live to the game
+* **Modern UI** – Clean neon cyberpunk interface with Orbitron font
+* **Mobile Responsive** – Fully playable on desktop, tablet, and mobile with touch support
 
 **Optional Advanced Features:**
 
 * **Cloud Saves** – Store player progress in the WordPress database (login required)
-* **Leaderboards** – Rank players using prestige-weighted scores
+* **Leaderboards** – Rank players using prestige-weighted Elo scores
+* **Per-Difficulty Leaderboards** – Separate Easy, Medium, and Hard rankings with tabbed display
+* **Custom Login Portal** – Branded login, registration, and password reset pages via shortcodes
 * **Ad Integration** – Optional ad placement via shortcode attribute or admin Ad Space
-* **REST API** – Public endpoints for leaderboard data
+* **REST API** – Public endpoints for leaderboard and game data
+* **WordPress 7.0 AI Client** – Optionally use the native WP 7.0 AI provider system instead of a direct API key
 
 **Gameplay Settings:**
 
@@ -47,6 +55,15 @@ This plugin is self-contained and runs entirely inside WordPress, making it idea
 * **Movement Trigger** - None / Click / Timer / Both (button position swapping)
 * **Enable Self-Reset** - Let players start a new run keeping prestige and best score
 * **Ad Space** - Optional ad HTML placement within the game
+
+**Timed Contests (Coming in v2.1):**
+
+* **Create Contests** – Set up timed competitions with custom names, start/end dates, and contest types (weekly, monthly, custom)
+* **Prize Management** – Define 1st, 2nd, and 3rd place prizes for each contest
+* **Live Contest Leaderboards** – Players compete in real time during active contests
+* **Automatic Winner Selection** – System selects and records winners when a contest ends
+* **Achievement Tracking** – Contest winners earn achievements stored in your database
+* **AI Storyline Integration** – AI narrative popups automatically suppressed during active contests for fair play
 
 **Shortcodes:**
 
@@ -163,6 +180,12 @@ No user data or personal information is transmitted. The feature is disabled by 
 
 Claude Haiku 4.5 (Anthropic), GPT-4o Mini and GPT-5 Mini (OpenAI), and Grok 4.1 Fast (xAI).
 You must supply your own API key in Settings → AI Storyline.
+
+= When will Timed Contests be available? =
+
+The full Contest system — including timed competitions, prize management, live leaderboards,
+and automatic winner selection — is planned for version 2.1. Follow
+[ZillHa.com](https://zillha.com) for release announcements.
 
 == Screenshots ==
 
