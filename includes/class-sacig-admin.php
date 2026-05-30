@@ -996,24 +996,19 @@ class SACIG_Admin {
         ?>
         <style>
         /* Remove WP grey filter so gold Bitcoin color shows in sidebar */
-        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game
-            .wp-menu-image img {
+        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-menu-image img {
             filter: none !important;
             opacity: 1 !important;
         }
 
         /* Purple neon left border on active submenu items */
-        #adminmenu
-            .toplevel_page_shortcodearcade-crypto-idle-game
-            .wp-submenu li.current a {
+        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-submenu li.current a {
             color: #a855f7;
             border-left: 3px solid #a855f7;
             padding-left: 9px;
         }
 
-        #adminmenu
-            .toplevel_page_shortcodearcade-crypto-idle-game
-            .wp-submenu a:hover {
+        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-submenu a:hover {
             color: #e879f9;
         }
         </style>
