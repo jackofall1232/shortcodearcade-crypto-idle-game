@@ -232,7 +232,7 @@ class SACIG_Miner_Shortcode {
         // Start output buffering
         ob_start();
 
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value escaped inside get_branding_style()
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS is constructed internally using options that are strictly sanitized as hex colors on save, ensuring the output is safe.
         echo $this->get_branding_style();
         ?>
 
@@ -454,7 +454,7 @@ class SACIG_Miner_Shortcode {
 
         ob_start();
 
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value escaped inside get_branding_style()
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- CSS is constructed internally using options that are strictly sanitized as hex colors on save, ensuring the output is safe.
         echo $this->get_branding_style();
         ?>
         <div class="sacig-leaderboard-container">
