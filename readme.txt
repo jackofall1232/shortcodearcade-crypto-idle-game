@@ -199,20 +199,27 @@ and automatic winner selection — is planned for version 2.1. Follow
 == Changelog ==
 
 = 2.1.0 =
-* NEW: Per-upgrade AI media URLs (video/image per upgrade tier)
-* NEW: Phased media→text AI popup with Skip button
-* NEW: Styled difficulty change and self-reset confirmation modals
-* NEW: UI label override system — all game strings customizable via Branding admin
-* NEW: Real button glow animation + decoy dim effect + click hint + decoy ✗ indicator
-* NEW: Absolute-position button movement with chaos jitter (triangle pattern mode 3)
-* NEW: Mobile double-tap zoom prevention
-* NEW: Footer {year}/{title} token substitution
-* NEW: Currency symbol wired to frontend JS
-* FIXED: Miner status bar was completely unstyled
-* FIXED: Leaderboard difficulty tabs rendered but had no CSS styling
-* FIXED: Login/register forms rendered unstyled
-* FIXED: Offline earnings incorrectly capped at 24h instead of 48h
-* FIXED: Per-upgrade AI media resolver missing from JS and admin
+* NEW: Per-upgrade AI media — set a video or image URL per upgrade tier that plays before the AI narrative popup
+* NEW: Phased AI popup — media plays first with a Skip button, then transitions to the AI text message
+* NEW: Per-upgrade AI media URL fields in the AI Storyline admin settings
+* NEW: Styled difficulty change confirmation modal replaces native browser dialog
+* NEW: Styled self-reset (New Run) confirmation modal replaces native browser dialog
+* NEW: UI label override system — all in-game text strings customizable via Branding settings
+* NEW: Real button glow animation and decoy dim effect in multi-button anti-bot mode
+* NEW: "Find the brighter coin!" click hint shown on first load in multi-button mode
+* NEW: Decoy click shows animated ✗ indicator instead of text flash
+* NEW: Absolute-position button movement with chaos jitter (triangle pattern in 3-button mode)
+* NEW: Mobile double-tap zoom prevention on game container
+* NEW: Footer {year} and {title} token substitution now works as advertised in Branding settings
+* NEW: Currency symbol option wired to frontend game display
+* NEW: Gold Bitcoin coin icon in WordPress admin sidebar menu
+* FIXED: Miner status bar was completely unstyled — now shows active/stopped states with animations
+* FIXED: Leaderboard difficulty tabs rendered but had no CSS styling — now fully styled
+* FIXED: Login, registration, and forgot-password forms rendered completely unstyled
+* FIXED: Offline earnings were incorrectly capped at 24 hours — corrected to 48 hours matching miner timeout
+* FIXED: phpcs ignore comments lost during refactor — restored on all confirmed false positives
+* UPDATED: Plugin rebranded to ZillHa Games — visit ZillHa.com for live examples and setup guides
+* UPDATED: readme.txt description updated to reflect all features are 100% free
 
 = 2.0.2 =
 * NEW: Custom upgrade names via Branding settings (all 10 tiers)
@@ -304,6 +311,11 @@ and automatic winner selection — is planned for version 2.1. Follow
 * Improved database handling
 
 == Upgrade Notice ==
+
+= 2.1.0 =
+Major polish release — full visual and feature parity with the Pro reference.
+Fixes unstyled login forms, miner status bar, and leaderboard tabs.
+Corrects offline earnings cap from 24h to 48h. Safe to update — no database changes.
 
 = 2.0.0 =
 Major update — all Pro features are now 100% free. Full arcade admin UI, branding system, AI storyline, login pages, and leaderboards included at no cost. Upgrade recommended for all sites.
