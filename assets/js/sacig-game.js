@@ -52,15 +52,10 @@
 	const sacigCurrency = (typeof sacigSettings !== 'undefined' && sacigSettings.currencyName) ? sacigSettings.currencyName : 'Satoshis';
 	const sacigCurrencyLc = sacigCurrency.toLowerCase();
 
-	// Currency symbol from branding (may arrive as an HTML entity, e.g. &#x20BF;).
-	// Decode once so it can be rendered with textContent safely.
-	const sacigCurrencySymbol = (function () {
-		const raw = (typeof sacigSettings !== 'undefined' && sacigSettings.currencySymbol)
-			? sacigSettings.currencySymbol : '₿';
-		const ta = document.createElement('textarea');
-		ta.innerHTML = raw;
-		return ta.value || '₿';
-	})();
+	// Currency symbol from branding. Decoded server-side (html_entity_decode),
+	// so it can be used directly with textContent.
+	const sacigCurrencySymbol = (typeof sacigSettings !== 'undefined' && sacigSettings.currencySymbol)
+		? sacigSettings.currencySymbol : '₿';
 
 	// Custom upgrade names from branding settings. Index matches upgradeDefinitions
 	// order; an empty string means "use the hardcoded default for that tier".
@@ -703,19 +698,19 @@
 			return;
 		}
 
-		// Passive miners keep running offline only until the inactivity timeout
-		// (48h). Offline earnings are capped at the MINER_TIMEOUT_MS window; if the
-		// player was away longer, the miners stop and earnings are capped.
-		const msAway = Math.max(0, now - lastSaveTime);
-		let secondsAway;
-		let timedOut = false;
+		// The inactivity timeout fires at lastActiveTime + 48h. Offline earnings
+		// accrue from the last save up to whichever comes first: now, or that
+		// boundary — so an already-idle player can't bank a fresh full window.
+		const timeoutAt  = (gameState.lastActiveTime || now) + MINER_TIMEOUT_MS;
+		const timedOut   = now >= timeoutAt;
+		const offlineEnd = Math.min(now, timeoutAt);
 
-		if (msAway >= MINER_TIMEOUT_MS) {
-			secondsAway = MINER_TIMEOUT_MS / 1000;
-			timedOut    = true;
-		} else {
-			secondsAway = msAway / 1000;
-		}
+		// Seconds the miners actually ran offline (since the last save), capped at
+		// the 48h inactivity window.
+		const secondsAway = Math.min(
+			Math.max(0, (offlineEnd - lastSaveTime) / 1000),
+			MINER_TIMEOUT_MS / 1000
+		);
 
 		// Only calculate if the miners ran offline for more than 60 seconds.
 		if (secondsAway >= 60) {
@@ -1115,6 +1110,20 @@
 			mediaEl.className   = 'sacig-ai-popup-media sacig-ai-popup-video';
 			mediaEl.addEventListener('ended', complete, { once: true });
 			mediaEl.addEventListener('error', complete, { once: true });
+			// Try to play with sound; browsers block unmuted autoplay without prior
+			// interaction, so on rejection retry muted to guarantee the clip plays
+			// (and 'ended' eventually fires). Skip/overlay-click remain as a manual
+			// fallback in all cases.
+			const playAttempt = mediaEl.play();
+			if (playAttempt && typeof playAttempt.catch === 'function') {
+				playAttempt.catch(function () {
+					mediaEl.muted = true;
+					const retry = mediaEl.play();
+					if (retry && typeof retry.catch === 'function') {
+						retry.catch(function () { /* still blocked — user can Skip or click */ });
+					}
+				});
+			}
 		} else {
 			mediaEl = document.createElement('img');
 			mediaEl.src       = mediaUrl;
@@ -1246,6 +1255,12 @@
 
 		const real = document.getElementById('sacig-mineButton');
 		if (!real) return;
+
+		// Remove any decoys from a prior call so re-initialization never stacks
+		// duplicates (which would overflow the slot list in randomizeButtonPositions).
+		clickArea.querySelectorAll('.sacig-decoy-button').forEach(function (el) {
+			el.remove();
+		});
 
 		// The real button mines; mark it for brighter styling.
 		real.classList.add('sacig-real-button');
@@ -1546,7 +1561,8 @@
 			btn.type = 'button';
 			btn.className = 'sacig-difficulty-button' + (gameState.difficulty === d ? ' sacig-active' : '');
 			btn.dataset.difficulty = d;
-			btn.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+			const cap = d.charAt(0).toUpperCase() + d.slice(1);
+			btn.textContent = getLabel('difficulty' + cap, cap); // difficultyEasy/Medium/Hard override
 			btn.addEventListener('click', function() { confirmDifficultyChange(d); });
 			wrap.appendChild(btn);
 		});
@@ -1579,7 +1595,8 @@
 	function confirmDifficultyChange(newDifficulty) {
 		if (newDifficulty === gameState.difficulty) return;
 
-		const label = newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1);
+		const cap   = newDifficulty.charAt(0).toUpperCase() + newDifficulty.slice(1);
+		const label = getLabel('difficulty' + cap, cap);
 		const modal = document.getElementById('sacig-difficultyModal');
 
 		// Fallback to a native confirm if the modal markup is absent.

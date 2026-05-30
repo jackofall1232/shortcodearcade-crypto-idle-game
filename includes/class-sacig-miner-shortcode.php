@@ -151,7 +151,7 @@ class SACIG_Miner_Shortcode {
             'nonce' => wp_create_nonce('wp_rest'),
             'userId' => get_current_user_id(),
             'currencyName'   => get_option('sacig_currency_name') ?: 'Satoshis',
-            'currencySymbol' => get_option('sacig_currency_symbol', '&#x20BF;') ?: '&#x20BF;',
+            'currencySymbol' => html_entity_decode( get_option('sacig_currency_symbol', '&#x20BF;') ?: '&#x20BF;', ENT_QUOTES, 'UTF-8' ),
             'upgradeNames'   => $upgrade_names,
             'labels'         => $labels,
         );
@@ -258,15 +258,15 @@ class SACIG_Miner_Shortcode {
                             <span class="sacig-stat-value" id="sacig-satoshis">0</span>
                         </div>
                         <div class="sacig-stat-item">
-                            <span class="sacig-stat-label">Per Click</span>
+                            <span class="sacig-stat-label"><?php echo esc_html( get_option( 'sacig_label_per_click', '' ) ?: __( 'Per Click', 'shortcodearcade-crypto-idle-game' ) ); ?></span>
                             <span class="sacig-stat-value" id="sacig-clickPower">1</span>
                         </div>
                         <div class="sacig-stat-item">
-                            <span class="sacig-stat-label">Per Second</span>
+                            <span class="sacig-stat-label"><?php echo esc_html( get_option( 'sacig_label_per_second', '' ) ?: __( 'Per Second', 'shortcodearcade-crypto-idle-game' ) ); ?></span>
                             <span class="sacig-stat-value" id="sacig-passiveIncome">0</span>
                         </div>
                         <div class="sacig-stat-item">
-                            <span class="sacig-stat-label">Miner Rating</span>
+                            <span class="sacig-stat-label"><?php echo esc_html( get_option( 'sacig_label_miner_rating', '' ) ?: __( 'Miner Rating', 'shortcodearcade-crypto-idle-game' ) ); ?></span>
                             <span class="sacig-stat-value" id="sacig-rating">1000</span>
                         </div>
                     </div>
@@ -463,9 +463,9 @@ class SACIG_Miner_Shortcode {
             if ($allow_player_difficulty && '' === $att_diff) {
                 // Tabbed per-difficulty leaderboard.
                 $difficulties = array(
-                    'easy'   => __( 'Easy', 'shortcodearcade-crypto-idle-game' ),
-                    'medium' => __( 'Medium', 'shortcodearcade-crypto-idle-game' ),
-                    'hard'   => __( 'Hard', 'shortcodearcade-crypto-idle-game' ),
+                    'easy'   => get_option( 'sacig_label_difficulty_easy', '' )   ?: __( 'Easy', 'shortcodearcade-crypto-idle-game' ),
+                    'medium' => get_option( 'sacig_label_difficulty_medium', '' ) ?: __( 'Medium', 'shortcodearcade-crypto-idle-game' ),
+                    'hard'   => get_option( 'sacig_label_difficulty_hard', '' )   ?: __( 'Hard', 'shortcodearcade-crypto-idle-game' ),
                 );
                 $default_tab = 'medium';
                 ?>

@@ -1152,6 +1152,7 @@
 @media (max-width: 768px) {
     .sacig-container .sacig-click-area[data-button-mode="2"],
     .sacig-container .sacig-click-area[data-button-mode="3"] {
+        min-height: 260px;
         height: 260px;
     }
     .sacig-container .sacig-click-area[data-button-mode="2"] .sacig-mine-button,
