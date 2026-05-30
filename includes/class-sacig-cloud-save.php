@@ -434,10 +434,15 @@ class SACIG_Cloud_Save {
 		if ( $allow_player_difficulty && $difficulty && in_array( $difficulty, $valid, true ) ) {
 			// $difficulty is whitelisted above — column interpolation is safe.
 			$diff_col = 'best_rank_score_' . $difficulty;
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table leaderboard query
-			return $wpdb->get_results(
+			// $diff_col is whitelisted against array('easy','medium','hard') before
+			// interpolation. $table_name uses $wpdb->prefix — a trusted constant.
+			// SQL identifiers cannot use placeholder preparation.
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:disable PluginCheck.Security.DirectDB.UnescapedDBParameter
+			$results = $wpdb->get_results(
 				$wpdb->prepare(
-					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name and whitelisted column safely constructed
 					"SELECT s.user_id,
 							s.total_satoshis,
 							s.prestige_level,
@@ -454,13 +459,22 @@ class SACIG_Cloud_Save {
 				),
 				ARRAY_A
 			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.NoCaching
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			// phpcs:enable PluginCheck.Security.DirectDB.UnescapedDBParameter
+			return $results;
 		}
 
 		// No difficulty filter — rank by all-time best score.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table leaderboard query
-		return $wpdb->get_results(
+		// $table_name uses $wpdb->prefix — a trusted constant.
+		// SQL identifiers cannot use placeholder preparation.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:disable PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name safely constructed
 				"SELECT s.user_id,
 						s.total_satoshis,
 						s.prestige_level,
@@ -476,6 +490,11 @@ class SACIG_Cloud_Save {
 			),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable PluginCheck.Security.DirectDB.UnescapedDBParameter
+		return $results;
 	}
 
 	/**
