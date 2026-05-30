@@ -441,7 +441,7 @@ class SACIG_Cloud_Save {
 					"SELECT s.user_id,
 							s.total_satoshis,
 							s.prestige_level,
-							COALESCE(s.{$diff_col}, 0) AS best_rank_score,
+							COALESCE(s.{$diff_col}, 0) AS rank_score,
 							s.difficulty,
 							s.last_updated,
 							u.display_name
@@ -464,7 +464,7 @@ class SACIG_Cloud_Save {
 				"SELECT s.user_id,
 						s.total_satoshis,
 						s.prestige_level,
-						s.best_rank_score,
+						s.best_rank_score AS rank_score,
 						s.difficulty,
 						s.last_updated,
 						u.display_name

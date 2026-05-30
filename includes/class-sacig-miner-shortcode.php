@@ -419,17 +419,22 @@ class SACIG_Miner_Shortcode {
                 endforeach;
                 ?>
                 <script>
+                // Bind once per page (delegated) so multiple leaderboards can coexist
+                // and the script block emitting more than once never double-binds.
                 (function () {
-                    var tabs = document.querySelectorAll('.sacig-leaderboard-tab');
-                    tabs.forEach(function (tab) {
-                        tab.addEventListener('click', function () {
-                            var diff = this.dataset.difficulty;
-                            document.querySelectorAll('.sacig-leaderboard-tab').forEach(function (t) { t.classList.remove('sacig-lb-tab-active'); });
-                            document.querySelectorAll('.sacig-leaderboard-panel').forEach(function (p) { p.style.display = 'none'; });
-                            this.classList.add('sacig-lb-tab-active');
-                            var panel = document.querySelector('.sacig-leaderboard-panel[data-difficulty="' + diff + '"]');
-                            if (panel) { panel.style.display = ''; }
-                        });
+                    if (window.sacigLeaderboardTabsBound) { return; }
+                    window.sacigLeaderboardTabsBound = true;
+                    document.addEventListener('click', function (e) {
+                        var tab = e.target.closest ? e.target.closest('.sacig-leaderboard-tab') : null;
+                        if (!tab) { return; }
+                        var container = tab.closest('.sacig-leaderboard-container');
+                        if (!container) { return; }
+                        var diff = tab.dataset.difficulty;
+                        container.querySelectorAll('.sacig-leaderboard-tab').forEach(function (t) { t.classList.remove('sacig-lb-tab-active'); });
+                        container.querySelectorAll('.sacig-leaderboard-panel').forEach(function (p) { p.style.display = 'none'; });
+                        tab.classList.add('sacig-lb-tab-active');
+                        var panel = container.querySelector('.sacig-leaderboard-panel[data-difficulty="' + diff + '"]');
+                        if (panel) { panel.style.display = ''; }
                     });
                 })();
                 </script>
@@ -491,8 +496,7 @@ class SACIG_Miner_Shortcode {
     /**
      * Render a single leaderboard table (or the empty-state message).
      *
-     * Accepts rows from either query path: the score is read from `rank_score`
-     * when present, otherwise `best_rank_score`.
+     * Both query paths expose the score under the `rank_score` key.
      *
      * @param array  $results       Row arrays (ARRAY_A).
      * @param bool   $show_avatars  Whether to render player avatars.
@@ -531,7 +535,7 @@ class SACIG_Miner_Shortcode {
                     elseif ($rank === 3) $rank_class = 'sacig-rank-3';
 
                     $is_current_user = is_user_logged_in() && get_current_user_id() == $row['user_id'];
-                    $score = isset($row['rank_score']) ? $row['rank_score'] : ($row['best_rank_score'] ?? 0);
+                    $score = $row['rank_score'] ?? 0;
                 ?>
                 <tr class="<?php echo esc_attr($rank_class); ?> <?php echo $is_current_user ? 'sacig-current-user' : ''; ?>"<?php echo $is_current_user ? ' style="box-shadow: inset 4px 0 0 ' . esc_attr($highlight) . ';"' : ''; ?>>
                     <td class="sacig-rank">

@@ -61,7 +61,7 @@
 
 	function getUpgradeName(index, defaultName) {
 		const custom = sacigUpgradeNames[index];
-		return (custom && custom.trim()) ? custom.trim() : defaultName;
+		return (typeof custom === 'string' && custom.trim()) ? custom.trim() : defaultName;
 	}
 
 	// UI label accessor — reads from sacigSettings.labels with a safe fallback.
@@ -618,14 +618,14 @@
 			}
 		}
 
-		// Passive income only accrues while the miners are active.
-		if (gameState.minersActive) {
+		// Passive income only accrues while the miners are active. Skip the UI
+		// refresh entirely when nothing is earned to avoid 10x/sec DOM thrashing.
+		if (gameState.minersActive && gameState.passiveIncome > 0) {
 			const earned = (gameState.passiveIncome * gameState.prestigeMultiplier) / 10;
 			gameState.satoshis += earned; // Update 10 times per second
 			gameState.satoshis = Number(gameState.satoshis.toFixed(6)); // Prevent floating point drift
+			updateUI();
 		}
-
-		updateUI();
 	}
 
 	/**
