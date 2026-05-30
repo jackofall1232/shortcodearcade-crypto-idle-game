@@ -4,8 +4,8 @@
  * Plugin URI: https://github.com/jackofall1232/shortcodearcade-crypto-idle-game
  * Description: A crypto-themed idle clicker game with balanced progression, prestige mechanics, and optional leaderboards. Use the [sacig_crypto_idle_game] shortcode to display the game.
  * Version: 2.0.2
- * Author: Shortcode Arcade
- * Author URI: https://shortcodearcade.com
+ * Author: ZillHa Games
+ * Author URI: https://zillha.com
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: shortcodearcade-crypto-idle-game
