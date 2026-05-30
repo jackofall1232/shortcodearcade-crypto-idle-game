@@ -75,9 +75,9 @@ class SACIG_Admin {
     public function add_admin_menu() {
         $icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">'
             . '<circle cx="10" cy="10" r="9" fill="#f7931a"/>'
-            . '<circle cx="10" cy="10" r="8" fill="#f7a940"/>'
+            . '<circle cx="10" cy="10" r="7.5" fill="#f9a922"/>'
             . '<text x="10" y="14" text-anchor="middle" '
-            . 'font-size="11" font-weight="900" fill="#ffffff" '
+            . 'font-size="10" font-weight="900" fill="#ffffff" '
             . 'font-family="Arial,sans-serif">&#x20BF;</text>'
             . '</svg>';
 
@@ -995,20 +995,25 @@ class SACIG_Admin {
     public function output_menu_color_css() {
         ?>
         <style>
-        /* Remove WP's grey filter so the gold coin color shows */
-        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-menu-image img {
+        /* Remove WP grey filter so gold Bitcoin color shows in sidebar */
+        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game
+            .wp-menu-image img {
             filter: none !important;
             opacity: 1 !important;
         }
 
-        /* Purple left border on active submenu items */
-        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-submenu li.current a {
+        /* Purple neon left border on active submenu items */
+        #adminmenu
+            .toplevel_page_shortcodearcade-crypto-idle-game
+            .wp-submenu li.current a {
             color: #a855f7;
             border-left: 3px solid #a855f7;
             padding-left: 9px;
         }
 
-        #adminmenu .toplevel_page_shortcodearcade-crypto-idle-game .wp-submenu a:hover {
+        #adminmenu
+            .toplevel_page_shortcodearcade-crypto-idle-game
+            .wp-submenu a:hover {
             color: #e879f9;
         }
         </style>
@@ -1024,6 +1029,7 @@ class SACIG_Admin {
             return;
         }
 
+        // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Google Fonts CDN handles versioning; null omits the ?ver= query string which would break the Google Fonts URL format.
         wp_enqueue_style(
             'sacig-admin-fonts',
             'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap',

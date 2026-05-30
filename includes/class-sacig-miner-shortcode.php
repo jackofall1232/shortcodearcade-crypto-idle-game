@@ -232,7 +232,7 @@ class SACIG_Miner_Shortcode {
         // Start output buffering
         ob_start();
 
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value escaped inside get_branding_style()
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML is constructed internally using esc_html() on all dynamic values; the method returns only safe hardcoded strings and escaped option values.
         echo $this->get_branding_style();
         ?>
 
@@ -454,7 +454,7 @@ class SACIG_Miner_Shortcode {
 
         ob_start();
 
-        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- value escaped inside get_branding_style()
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML is constructed internally using esc_html() on all dynamic values; the method returns only safe hardcoded strings and escaped option values.
         echo $this->get_branding_style();
         ?>
         <div class="sacig-leaderboard-container">
