@@ -4,7 +4,7 @@ Donate link: https://shortcodearcade.com
 Tags: game, idle game, crypto, clicker game, mining game
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 2.0.1
+Stable tag: 2.0.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -172,6 +172,14 @@ You must supply your own API key in Settings → AI Storyline.
 6. Admin settings panel  
 
 == Changelog ==
+
+= 2.0.2 =
+* NEW: Custom upgrade names via Branding settings (all 10 tiers)
+* NEW: UI label system — game strings now localizable via PHP
+* NEW: Leaderboard difficulty tabs when player difficulty is enabled
+* NEW: Miner timeout — passive miners pause after 48 hours of inactivity, with an in-game Restart control
+* FIXED: Branding upgrade names were hardcoded; now read from admin settings
+* FIXED: Leaderboard showed flat list even when per-difficulty data existed
 
 = 2.0.1 =
 * NEW: Difficulty system (Easy/Medium/Hard) with per-difficulty leaderboards

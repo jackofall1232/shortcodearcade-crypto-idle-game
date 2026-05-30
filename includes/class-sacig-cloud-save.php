@@ -414,6 +414,71 @@ class SACIG_Cloud_Save {
 	}
 
 	/**
+	 * Get leaderboard entries for a specific difficulty.
+	 *
+	 * Used by the leaderboard shortcode renderer (tabbed per-difficulty view).
+	 * When per-player difficulty is disabled or no valid difficulty is given,
+	 * falls back to ranking by the all-time best score.
+	 *
+	 * @param string|null $difficulty 'easy'|'medium'|'hard'|null.
+	 * @param int         $limit      Max entries to return.
+	 * @return array Row arrays (ARRAY_A).
+	 */
+	public static function get_leaderboard_by_difficulty( $difficulty = null, $limit = 10 ) {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'sacig_saves';
+
+		$allow_player_difficulty = (bool) get_option( 'sacig_allow_player_difficulty', false );
+		$valid                   = array( 'easy', 'medium', 'hard' );
+
+		if ( $allow_player_difficulty && $difficulty && in_array( $difficulty, $valid, true ) ) {
+			// $difficulty is whitelisted above — column interpolation is safe.
+			$diff_col = 'best_rank_score_' . $difficulty;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table leaderboard query
+			return $wpdb->get_results(
+				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name and whitelisted column safely constructed
+					"SELECT s.user_id,
+							s.total_satoshis,
+							s.prestige_level,
+							COALESCE(s.{$diff_col}, 0) AS best_rank_score,
+							s.difficulty,
+							s.last_updated,
+							u.display_name
+					 FROM {$table_name} s
+					 LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID
+					 WHERE s.{$diff_col} > 0
+					 ORDER BY s.{$diff_col} DESC
+					 LIMIT %d",
+					$limit
+				),
+				ARRAY_A
+			);
+		}
+
+		// No difficulty filter — rank by all-time best score.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table leaderboard query
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name safely constructed
+				"SELECT s.user_id,
+						s.total_satoshis,
+						s.prestige_level,
+						s.best_rank_score,
+						s.difficulty,
+						s.last_updated,
+						u.display_name
+				 FROM {$table_name} s
+				 LEFT JOIN {$wpdb->users} u ON s.user_id = u.ID
+				 ORDER BY s.best_rank_score DESC
+				 LIMIT %d",
+				$limit
+			),
+			ARRAY_A
+		);
+	}
+
+	/**
 	 * Get leaderboard.
 	 *
 	 * @param WP_REST_Request $request Request object.

@@ -34,6 +34,27 @@ class SACIG_Branding {
 		'sacig_custom_coin'     => 'sacig_coin_image',
 	);
 
+	/**
+	 * Default upgrade tier names, in upgradeDefinitions (sacig-game.js) order.
+	 *
+	 * Used as input placeholders. An empty saved value means the JS renderer
+	 * keeps its own hardcoded default for that tier.
+	 *
+	 * @var string[]
+	 */
+	private static $upgrade_name_defaults = array(
+		'Better Pickaxe',
+		'CPU Miner',
+		'Diamond Pickaxe',
+		'GPU Mining Rig',
+		'Quantum Pickaxe',
+		'ASIC Miner',
+		'Neutron Star Drill',
+		'Mining Farm',
+		'Black Hole Extractor',
+		'Data Center',
+	);
+
 	public function __construct() {
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_color_picker' ) );
@@ -161,6 +182,19 @@ class SACIG_Branding {
 			)
 		);
 
+		// Custom upgrade names (one per tier). Empty value = use the JS default.
+		for ( $i = 1; $i <= 10; $i++ ) {
+			register_setting(
+				'sacig_branding_group',
+				'sacig_upgrade_' . $i . '_name',
+				array(
+					'type'              => 'string',
+					'default'           => '',
+					'sanitize_callback' => 'sanitize_text_field',
+				)
+			);
+		}
+
 		add_settings_section(
 			'sacig_branding_section',
 			__( 'Branding Settings', 'shortcodearcade-crypto-idle-game' ),
@@ -224,6 +258,13 @@ class SACIG_Branding {
 			'shortcodearcade-crypto-idle-game-branding',
 			'sacig_branding_section'
 		);
+		add_settings_field(
+			'sacig_upgrade_names',
+			__( 'Upgrade Names', 'shortcodearcade-crypto-idle-game' ),
+			array( $this, 'render_upgrade_names_field' ),
+			'shortcodearcade-crypto-idle-game-branding',
+			'sacig_branding_section'
+		);
 	}
 
 	/**
@@ -246,7 +287,22 @@ class SACIG_Branding {
 			'currency_name'   => get_option( 'sacig_currency_name' ) ?: 'Satoshis',
 			'currency_symbol' => get_option( 'sacig_currency_symbol' ) ?: '&#x20BF;',
 			'footer_text'     => get_option( 'sacig_footer_text', '' ),
+			'upgrade_names'   => self::get_upgrade_names(),
 		);
+	}
+
+	/**
+	 * Resolve the 10 custom upgrade names in upgradeDefinitions order.
+	 *
+	 * @return string[] Ten values (0-indexed); an empty string means "use the
+	 *                  JS-side default name for that tier".
+	 */
+	public static function get_upgrade_names() {
+		$names = array();
+		for ( $i = 1; $i <= 10; $i++ ) {
+			$names[] = get_option( 'sacig_upgrade_' . $i . '_name', '' ) ?: '';
+		}
+		return $names;
 	}
 
 	/**
@@ -417,6 +473,39 @@ class SACIG_Branding {
 		<input type="text" id="sacig_footer_text" name="sacig_footer_text" class="large-text" maxlength="120" value="<?php echo esc_attr( $value ); ?>">
 		<p class="description"><?php echo wp_kses_post( __( 'Text shown in the game footer. Supports {year} and {title} variables.', 'shortcodearcade-crypto-idle-game' ) ); ?></p>
 		<?php
+	}
+
+	/**
+	 * Render the 10 custom upgrade name fields in a two-column grid.
+	 *
+	 * Each placeholder shows the tier's default name; leaving a field empty keeps
+	 * that default in the game.
+	 */
+	public function render_upgrade_names_field() {
+		echo '<div class="sacig-upgrade-names-grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:760px;">';
+		for ( $i = 1; $i <= 10; $i++ ) {
+			$value   = get_option( 'sacig_upgrade_' . $i . '_name', '' );
+			$default = isset( self::$upgrade_name_defaults[ $i - 1 ] ) ? self::$upgrade_name_defaults[ $i - 1 ] : '';
+			?>
+			<div class="sacig-upgrade-name-field">
+				<label for="sacig_upgrade_<?php echo esc_attr( $i ); ?>_name">
+					<?php
+					/* translators: %d: upgrade tier number (1-10). */
+					printf( esc_html__( 'Upgrade %d', 'shortcodearcade-crypto-idle-game' ), (int) $i );
+					?>
+				</label><br>
+				<input type="text"
+					id="sacig_upgrade_<?php echo esc_attr( $i ); ?>_name"
+					name="sacig_upgrade_<?php echo esc_attr( $i ); ?>_name"
+					class="regular-text"
+					maxlength="50"
+					value="<?php echo esc_attr( $value ); ?>"
+					placeholder="<?php echo esc_attr( $default ); ?>">
+			</div>
+			<?php
+		}
+		echo '</div>';
+		echo '<p class="description">' . esc_html__( 'Leave empty to use the default name. Max 50 characters.', 'shortcodearcade-crypto-idle-game' ) . '</p>';
 	}
 
 	/**
