@@ -623,10 +623,11 @@ class SACIG_Login_Pages {
 
 		// Preserve the original redirect_to target (e.g. a protected page) across the redirect.
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only passthrough of the login redirect target; no state-changing processing occurs.
-		if ( isset( $_REQUEST['redirect_to'] ) && '' !== $_REQUEST['redirect_to'] ) {
+		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? wp_unslash( $_REQUEST['redirect_to'] ) : '';
+		if ( '' !== $redirect_to ) {
 			$login_page = add_query_arg(
 				'redirect_to',
-				rawurlencode( esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) ),
+				rawurlencode( esc_url_raw( $redirect_to ) ),
 				$login_page
 			);
 		}

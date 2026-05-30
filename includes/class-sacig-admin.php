@@ -1024,12 +1024,11 @@ class SACIG_Admin {
             return;
         }
 
-        // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Google Fonts CDN handles versioning; null omits the ?ver= query string which would break the Google Fonts URL format.
         wp_enqueue_style(
             'sacig-admin-fonts',
             'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap',
             array(),
-            null
+            null // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- Google Fonts CDN handles versioning; null omits the ?ver= query string which would otherwise break the Google Fonts URL format.
         );
 
         wp_enqueue_style(
