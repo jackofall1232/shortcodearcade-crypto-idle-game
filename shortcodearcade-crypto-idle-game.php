@@ -62,8 +62,30 @@ final class SACIG_Bootstrap {
 		$this->load_dependencies();
 		$this->init_components();
 
+		// Run schema upgrades on init (not admin_init) so the new columns exist
+		// for frontend REST requests on sites that upgrade without an admin visit.
+		add_action( 'init', array( $this, 'maybe_upgrade_db' ) );
+
 		register_activation_hook( __FILE__, array( $this, 'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this, 'deactivate' ) );
+	}
+
+	/**
+	 * Create or migrate the saves table when the plugin version changes.
+	 *
+	 * Runs on every context (front end included). dbDelta adds any columns
+	 * missing from an older schema, so this also migrates existing tables.
+	 */
+	public function maybe_upgrade_db() {
+		if ( SACIG_VERSION === get_option( 'sacig_db_version' ) ) {
+			return;
+		}
+
+		if ( get_option( 'sacig_enable_cloud_saves', false ) ) {
+			$this->maybe_create_table();
+		}
+
+		update_option( 'sacig_db_version', SACIG_VERSION );
 	}
 
 	/**

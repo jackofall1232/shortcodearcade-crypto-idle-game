@@ -337,12 +337,12 @@ class SACIG_Miner_Shortcode {
                     s.user_id,
                     s.total_satoshis,
                     s.prestige_level,
-                    s.rank_score,
+                    s.best_rank_score AS rank_score,
                     s.last_updated,
                     u.display_name
                 FROM {$table_name} s
                 LEFT JOIN {$users_table} u ON s.user_id = u.ID
-                ORDER BY s.rank_score DESC
+                ORDER BY s.best_rank_score DESC
                 LIMIT %d",
                 $limit
             ),

@@ -63,7 +63,6 @@ class SACIG_Admin {
 
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
-        add_action('admin_init', array($this, 'check_db_version'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         add_action('admin_head', array($this, 'output_menu_color_css'));
     }
@@ -416,6 +415,13 @@ class SACIG_Admin {
     public function sanitize_ad_html( $input ) {
         if ( empty( $input ) ) {
             return '';
+        }
+
+        // Admins with the unfiltered_html capability may save raw ad markup
+        // (e.g. AdSense inline scripts) without wp_kses stripping it. This mirrors
+        // how WordPress core gates raw HTML/script in post content.
+        if ( current_user_can( 'unfiltered_html' ) ) {
+            return $input;
         }
 
         $allowed = wp_kses_allowed_html( 'post' );
@@ -974,63 +980,6 @@ class SACIG_Admin {
         dbDelta($sql);
     }
 
-    /**
-     * Migrate the saves table to add new columns on sites with the old schema.
-     *
-     * Uses targeted ALTER TABLE statements because MySQL does not support
-     * "ADD COLUMN IF NOT EXISTS"; missing columns are detected first.
-     */
-    private function maybe_migrate_db() {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'sacig_saves';
-
-        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-        // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
-        // Table name is safely constructed using $wpdb->prefix; only this plugin's table is touched.
-        $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table_name ) );
-        if ( $exists !== $table_name ) {
-            return;
-        }
-
-        $existing_columns = $wpdb->get_col( "DESC {$table_name}", 0 );
-        if ( ! is_array( $existing_columns ) ) {
-            return;
-        }
-
-        // Column name => column definition. Both are hard-coded constants (no user input).
-        $new_columns = array(
-            'best_rank_score'        => 'decimal(30,6) DEFAULT 0',
-            'best_rank_score_easy'   => 'decimal(30,6) DEFAULT 0',
-            'best_rank_score_medium' => 'decimal(30,6) DEFAULT 0',
-            'best_rank_score_hard'   => 'decimal(30,6) DEFAULT 0',
-            'difficulty'             => "varchar(10) DEFAULT 'medium'",
-        );
-
-        foreach ( $new_columns as $column => $definition ) {
-            if ( ! in_array( $column, $existing_columns, true ) ) {
-                $wpdb->query( "ALTER TABLE {$table_name} ADD COLUMN {$column} {$definition}" );
-            }
-        }
-        // phpcs:enable
-    }
-
-    /**
-     * Check the stored DB version and run schema creation/migration when it changes.
-     */
-    public function check_db_version() {
-        $installed = get_option( 'sacig_db_version' );
-        if ( SACIG_VERSION === $installed ) {
-            return;
-        }
-
-        // Create the table when cloud saves are in use, then migrate any old schema.
-        if ( get_option( 'sacig_enable_cloud_saves', false ) ) {
-            $this->maybe_create_table();
-        }
-        $this->maybe_migrate_db();
-
-        update_option( 'sacig_db_version', SACIG_VERSION );
-    }
 
     /**
      * Output inline CSS to recolor the admin menu icon on our pages.

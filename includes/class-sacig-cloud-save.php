@@ -268,7 +268,14 @@ class SACIG_Cloud_Save {
 		);
 
 		// Resolve the player's difficulty (whitelisted) and its best-score column.
-		$difficulty = isset( $save_data['difficulty'] ) ? (string) $save_data['difficulty'] : 'medium';
+		// When player-selectable difficulty is disabled, the admin's global
+		// difficulty is authoritative — the client value is ignored so it cannot
+		// be spoofed to populate the wrong per-difficulty leaderboard column.
+		if ( (bool) get_option( 'sacig_allow_player_difficulty', false ) ) {
+			$difficulty = isset( $save_data['difficulty'] ) ? (string) $save_data['difficulty'] : 'medium';
+		} else {
+			$difficulty = (string) get_option( 'sacig_difficulty', 'medium' );
+		}
 		if ( ! in_array( $difficulty, array( 'easy', 'medium', 'hard' ), true ) ) {
 			$difficulty = 'medium';
 		}
