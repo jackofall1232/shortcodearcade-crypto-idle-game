@@ -3,7 +3,7 @@
  * Plugin Name: Shortcode Arcade Crypto Idle Game
  * Plugin URI: https://github.com/jackofall1232/shortcodearcade-crypto-idle-game
  * Description: A crypto-themed idle clicker game with balanced progression, prestige mechanics, and optional leaderboards. Use the [sacig_crypto_idle_game] shortcode to display the game.
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Shortcode Arcade
  * Author URI: https://shortcodearcade.com
  * License: GPL v2 or later
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin constants
  */
-define( 'SACIG_VERSION', '2.0.0' );
+define( 'SACIG_VERSION', '2.0.1' );
 define( 'SACIG_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SACIG_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SACIG_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
@@ -129,9 +129,16 @@ final class SACIG_Bootstrap {
 			prestige_level int DEFAULT 0,
 			total_satoshis decimal(30,6) DEFAULT 0,
 			rank_score decimal(30,6) DEFAULT 0,
+			best_rank_score decimal(30,6) DEFAULT 0,
+			best_rank_score_easy decimal(30,6) DEFAULT 0,
+			best_rank_score_medium decimal(30,6) DEFAULT 0,
+			best_rank_score_hard decimal(30,6) DEFAULT 0,
+			difficulty varchar(10) DEFAULT 'medium',
 			last_updated datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY  (user_id),
-			KEY rank_score (rank_score DESC),
+			KEY rank_score (rank_score),
+			KEY best_rank_score (best_rank_score),
+			KEY difficulty (difficulty),
 			KEY last_updated (last_updated)
 		) {$charset_collate};";
 

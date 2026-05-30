@@ -123,6 +123,15 @@ class SACIG_Miner_Shortcode {
 
         wp_localize_script('sacig-game-js', 'sacigSettings', $script_data);
 
+        // Gameplay settings (difficulty, anti-bot button mode, self-reset).
+        if ( class_exists( 'SACIG_Admin' ) ) {
+            wp_localize_script(
+                'sacig-game-js',
+                'sacigGameplay',
+                SACIG_Admin::get_gameplay_settings()
+            );
+        }
+
         // AI Storyline data for the optional narrative popups. The nonce ties
         // requests to this site so the paid endpoint cannot be called anonymously.
         wp_localize_script(
